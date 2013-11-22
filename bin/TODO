@@ -1,0 +1,32 @@
+Deal with sharing (or not) within the [Un]Shared(In|Out)Port traits (to avoid
+duplicated code).
+
+
+
+
+
+----
+
+Test files: Test.scala Phils.scala EightQueens.scala
+
+----
+
+Restrictions:
+
+An alt may not have two simultaneously enabled branches using the
+same channel. (see mail to Bernard 01/09/2010)
+
+If a port is used within an alt, it can't simultaneously be used within a
+non-alt (fixing this requires changing the semantics, so that the alt does the
+read or write).
+
+The input port of a OneMany channel may not simultaneously
+participate in more than one \SCALA{alt}
+
+Can't use alts with:
+- buffers (BufImpl.scala)
+- netIO (Connection.scala, ObjectIO)
+- proxies (InPort.scala, OutPort.scala)
+(not implemented). 
+
+TO DO:
