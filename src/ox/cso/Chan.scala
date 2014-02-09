@@ -29,102 +29,15 @@ package ox.cso
  @version 03.20120824
  @author Bernard Sufrin, Oxford
  @author Gavin Lowe, Oxford
- $Revision: 553 $ 
- $Date: 2012-08-25 13:22:48 +0100 (Sat, 25 Aug 2012) $
+ $Revision: 640 $ 
+ $Date: 2013-09-24 12:48:42 +0100 (Tue, 24 Sep 2013) $
 }}}
 */
-trait  Chan [T] extends InPort[T] with OutPort[T] with Pausable
-{
-  // ALT IMPLEMENTATION HOOKS
-  // List of (alt,branch index) pairs registered at this InPort resp OutPort
-  protected var regsIn  : List[(Alt,Int)] = Nil
-  protected var regsOut : List[(Alt,Int)] = Nil
-
-  // Results returned by commit and register 
-  protected val YES    = Alt.YES
-  protected val NO     = Alt.NO
-  protected val MAYBE  = Alt.MAYBE
-  protected val CLOSED = Alt.CLOSED
-
-  /** Alt a registers with this channel; in is true iff a is
-      registering with the InPort; n is the branch index within
-      a.  This is called by registerIn and registerOut in
-      subclasses. 
-  */
-  protected def register(a:Alt, in:Boolean, n:Int) : Int = synchronized 
-  {
-    val result = checkRegistered(in);
-    if (result==NO) 
-    { // register the port
-      if (in) regsIn ::= (a,n) else regsOut ::= (a,n) 
-    }
-    return result
-  }
-
-  /** Release a registered alt, if there is one: release a writer if
-      out=true; release a reader if out=false */
-      
-  protected def releaseRegistered(out:Boolean) = synchronized 
-  {
-    while (checkRegistered(out)==MAYBE) pause
-    resetPause
-  }
-
-  /** Check if any registered alt is ready to 
-      <pre>
-      (a) output if out=true; 
-      (b) input  if out=false. 
-      </pre>
-  */
-  protected def checkRegistered(out:Boolean) : Int = synchronized 
-  {
-    var maybeFlag = false                       // has any commit returned MAYBE?
-    val regs = if (out) regsOut else regsIn     // alts registered at other port
-
-    for ( (a1,n1) <- regs )
-    {
-      // a1 previously registered with the other port; can it commit?
-      val resp = a1.commit(n1); 
-      if (resp==YES) 
-      { 
-        if (out) 
-           regsOut = regsOut filterNot (_ == (a1,n1))
-        else 
-           regsIn  = regsIn filterNot (_ == (a1,n1)) 
-        return YES
-      } 
-      else if (resp==MAYBE) 
-        maybeFlag = true
-      else
-      { // deregister a1
-        assert (resp==NO)
-        if (out) 
-           regsOut = regsOut filterNot (_ == (a1,n1)) 
-        else 
-           regsIn  = regsIn filterNot (_ == (a1,n1))
-      }
-    }
-
-    // All commits have returned NO or MAYBE
-    if (maybeFlag) 
-       return MAYBE;
-    else 
-       // all returned NO
-       return NO; 
-  }
-
-  /** alt a deregisters */
-  def deregisterIn(a: Alt, n: Int) = synchronized
-  {
-    regsIn = regsIn filterNot (_ == (a,n)); 
-  }
-  
-  /** alt a deregisters */
-  def deregisterOut(a: Alt, n: Int) = synchronized
-  { 
-    regsOut = regsOut filterNot (_ == (a,n)); 
-  }
+trait  Chan [T] extends InPort[T] with OutPort[T] with AltRegister
+{ override def deregisterIn(a: Alt, n: Int): Unit  = AltderegisterIn(a, n)
+  override def deregisterOut(a: Alt, n: Int): Unit = AltderegisterOut(a, n)
 }
+
 
 
 object Chan
@@ -148,12 +61,32 @@ object Chan
   */
   class   Proxy[T](out: OutPort[T], in: InPort[T]) 
   extends Chan[T]
-  with    InPort.Proxy[T] 
-  with    OutPort.Proxy[T] 
+  with    InPort[T] 
+  with    OutPort[T] 
   { val   inport = in
     val   outport = out
+    
+    override def ! (value: T) = outport ! value
+    override def close        = outport.close
+
+    override def registerOut(a:Alt,n:Int) : Int = 
+             outport.registerOut(a, n)    // was throw new UnsupportedOperationException() 
+    override def deregisterOut(a:Alt, n:Int) = 
+             outport.deregisterOut(a, n) // was throw new UnsupportedOperationException() 
+    
+    override def ?      = inport.?
+    override def ?[U] (f: T=>U) = f(inport?)
+    override def read   = inport.?
+    override def open   = inport.open
+
+    override def registerIn(a:Alt, n:Int) : Int = 
+                 inport.registerIn(a, n)   // was throw new UnsupportedOperationException() 
+    override def deregisterIn(a:Alt, n:Int) = 
+                 inport.deregisterIn(a, n) // was throw new UnsupportedOperationException() 
   }
 }
+
+
 
 
 

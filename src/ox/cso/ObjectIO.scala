@@ -33,8 +33,8 @@ and serialized object input/output.
 {{{
  @version 03.20120824
  @author Bernard Sufrin, Oxford
- $Revision: 553 $ 
- $Date: 2012-08-25 13:22:48 +0100 (Sat, 25 Aug 2012) $
+ $Revision: 640 $ 
+ $Date: 2013-09-24 12:48:42 +0100 (Tue, 24 Sep 2013) $
 }}}  
 */
 object ObjectIO
@@ -98,11 +98,6 @@ object ObjectIO
      
      override def close = { objects.flush; objects.close }
 
-     // Operations for alts not currently supported
-     def registerOut(a:Alt,n:Int) : Int = 
-       throw new UnsupportedOperationException() 
-     def deregisterOut(a:Alt, n:Int) = 
-       throw new UnsupportedOperationException() 
    } 
    
    /**
@@ -123,6 +118,7 @@ object ObjectIO
               { java.io.ObjectStreamClass.lookup(Class.forName(readUTF)) }     
    }   
 }
+
 
 
 

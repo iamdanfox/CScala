@@ -20,8 +20,10 @@ License.
 */
 
 
+
 package ox;
 import  ox.cso._
+import  scala.language.postfixOps /* From scala v10.0 */
 
 
 
@@ -31,8 +33,8 @@ import  ox.cso._
 {{{
 @author  Bernard Sufrin, Oxford
 @version 03.20120824
-$Revision: 546 $ 
-$Date: 2012-08-25 12:12:44 +0100 (Sat, 25 Aug 2012) $
+$Revision: 643 $ 
+$Date: 2013-11-04 18:21:46 +0000 (Mon, 04 Nov 2013) $
 }}}
 
 
@@ -96,7 +98,7 @@ If `PROC` is a process, then it can be run in one of three ways
  - `PROC.fork` -- which starts running `PROC` in a 
    new thread, and returns a ''handle'' for that thread.
 
- - `PROC.serve` -- which starts running `PROC` in a 
+ - `PROC.forkdaemon` -- which starts running `PROC` in a 
    new ''daemon'' thread, and returns a ''handle'' for that thread.
    
    The java documentation explains that daemon threads are ''long-lived''
@@ -229,6 +231,7 @@ print a line of equals signs and stop.
 Act as a buffer for the data flowing between `in` and `out`.  
 
 === Connection Events ===
+A '''Connection''' is effectively a pair of channels between a client and a server.
 
 To use boolean guarded alt events with client or server connections (as
 specified in `ox.cso.Connection`) there is a syntactic sugar
@@ -291,6 +294,11 @@ object CSO
    */
    type ?[+T]  = ox.cso.InPort[T]
    
+   /** A shared input port. 
+       @see ox.cso.SharedInPort 
+   */
+   type #?[+T]  = ox.cso.SharedInPort[T]
+   
    /** An output port. 
        @see ox.cso.OutPort 
    */
@@ -300,6 +308,11 @@ object CSO
        @see ox.cso.OutPort 
    */
    type ![-T] = ox.cso.OutPort[T]
+   
+   /** A shared output port. 
+       @see ox.cso.SharedOutPort 
+   */
+   type #![-T] = ox.cso.SharedOutPort[T]
    
    /** A shared input port. 
        @see ox.cso.SharedInPort 
@@ -311,7 +324,7 @@ object CSO
    */
    type SharedOutPort[-T] = ox.cso.SharedOutPort[T]
    
-   /** A nunshared input port. 
+   /** An unshared input port. 
        @see ox.cso.SharedInPort 
    */
    type UnSharedInPort[+T]  = ox.cso.UnSharedInPort[T]
@@ -738,6 +751,10 @@ object CSO
   */
   type CombiningBarrier[T] = ox.cso.CombiningBarrier[T];
 }
+
+
+
+
 
 
 

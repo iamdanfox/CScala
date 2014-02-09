@@ -39,8 +39,8 @@ then it decides that the sending end has ''gone down''.
 {{{
  @version 03.20120824
  @author Bernard Sufrin, Oxford
- $Revision: 553 $ 
- $Date: 2012-08-25 13:22:48 +0100 (Sat, 25 Aug 2012) $
+ $Revision: 623 $ 
+ $Date: 2013-02-12 18:36:06 +0000 (Tue, 12 Feb 2013) $
 }}}
 */
 object HeartBeat
@@ -69,8 +69,11 @@ object HeartBeat
   def receiver[T](pulse: Long, from: ?[Message], to: ![T], fail: ![Unit]) = 
   proc 
   { serve( from ==>
-           { case Ping      => ()
-             case Data(d:T) => to!d
+           { case Ping        => ()
+             case d : Data[T] => to!d.data 
+             // the above is a circumlocution to avoid erasure warning
+             // WAS case Data(d:T) => to!d
+
            }
          | after(pulse) ==> { fail!() }
          ) 
@@ -79,6 +82,7 @@ object HeartBeat
     fail.closeout 
   }
 }
+
 
 
 

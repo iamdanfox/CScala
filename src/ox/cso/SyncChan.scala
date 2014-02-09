@@ -57,8 +57,8 @@ package ox.cso;
  @version 03.20120824
  @author Bernard Sufrin, Oxford
  @author Gavin Lowe, Oxford
- $Revision: 553 $ 
- $Date: 2012-08-25 13:22:48 +0100 (Sat, 25 Aug 2012) $
+ $Revision: 632 $ 
+ $Date: 2013-04-16 20:41:19 +0100 (Tue, 16 Apr 2013) $
 }}} 
 */
 class SyncChan [T] (id: String) extends Chan[T] 
@@ -206,5 +206,6 @@ class SyncChan [T] (id: String) extends Chan[T]
 }
 
 object SyncChan extends NameGenerator("SyncChan-")
+
 
 

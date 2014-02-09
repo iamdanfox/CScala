@@ -27,8 +27,8 @@ package ox.cso;
 {{{
  @version 03.20120824
  @author Bernard Sufrin, Oxford
- $Revision: 602 $ 
- $Date: 2012-08-28 17:47:57 +0100 (Tue, 28 Aug 2012) $
+ $Revision: 640 $ 
+ $Date: 2013-09-24 12:48:42 +0100 (Tue, 24 Sep 2013) $
 }}}
 
     An <code>OutPort[T]</code> is one of the endpoints of a channel that transmits
@@ -97,10 +97,14 @@ trait OutPort [-T]
   def -!-> (cmd: => Unit) = 
     new OutPort.OutPortEvent[T](this, ()=>cmd, isOpenForWrite)
 
-  /** Register an attempt to use the port by an Alt */
-  private [cso] def registerOut(a:Alt,n:Int) : Int
-  /** Deregister an attempt to use the port by an Alt */
-  private [cso] def deregisterOut(a:Alt, n:Int) 
+  /** Register an attempt to use the port by an Alt: unsupported by default */
+  private [cso] def registerOut(a:Alt,n:Int) : Int =  
+          throw new  UnsupportedOperationException()
+
+  /** Deregister an attempt to use the port by an Alt: unsupported by default */
+  private [cso] def deregisterOut(a:Alt, n:Int): Unit =
+          throw new  UnsupportedOperationException()
+
   // def isRegisteredOut(a:Alt, n:Int) : Boolean
 }
 
@@ -154,6 +158,7 @@ object OutPort{
   }
     
 }
+
 
 
 

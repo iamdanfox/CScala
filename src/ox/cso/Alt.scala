@@ -40,8 +40,8 @@ of CSO notations.
 @version 03.20120824
 @author Bernard Sufrin, Oxford
 @author Gavin Lowe, Oxford
-$Revision: 553 $ 
-$Date: 2012-08-25 13:22:48 +0100 (Sat, 25 Aug 2012) $
+$Revision: 634 $ 
+$Date: 2013-04-22 22:30:15 +0100 (Mon, 22 Apr 2013) $
 }}}
 
 The preferred notation is
@@ -335,38 +335,47 @@ class Alt(events: Seq[Alt.Event], priAlt: Boolean)
 
       // All events now registered with their channels
 
-      if(!success){ // No registration returned YES
-        if(nReged==0){ // no event enabled, so behave as an OrElse *****************
-          if(orElseBranch>=0) toRun = orElseBranch
-          else throw new Abort; 
+      if (!success) { // No registration returned YES
+        if(nReged==0) { // no event enabled, so behave as an OrElse *****************
+          if (orElseBranch>=0) 
+             toRun = orElseBranch
+          else 
+             throw new Abort; 
         }
         else
-        if(timeoutMS==0){ // no timeout
+        {
           // Need to wait for a channel to become ready
           waiting=true; 
-          allBranchesClosed = Facet.setReged(nReged); 
-          if(!allBranchesClosed) while(waiting) wait(); // wait to be awoken
-        }
-        else{ // with timeout
-          Facet.changeStatus(WAITTO); waiting=true;
-          wait(timeoutMS); // wait to be awoken or for timeout
-          if (waiting) { 
-            // assume timeout was reached (this could be a spurious wakeup)
-            if(Arbitrator.checkRace(TIMEDOUT)){
-              waiting = false; toRun = timeoutBranch; 
-            }
-            else // A commit was received just before the timeout.
-              if (!allBranchesClosed)   // **************** Don't wait if there's no hope
-                 while(waiting) wait()  // Wait to be woken
-          } // end of if(waiting)
-        } // end of else (with timeout)
+          allBranchesClosed = Facet.setReged(nReged, timeoutMS!=0)
+          
+          if(!allBranchesClosed) {
+             if(timeoutMS==0){ 
+               // no timeout
+               while(waiting) wait() // wait to be awoken
+             }
+             else { 
+              wait(timeoutMS)       // wait to be awoken or for timeout
+              
+              if (waiting) { 
+                 // assume timeout was reached (this could be a spurious wakeup)
+                 if (Arbitrator.checkRace(TIMEDOUT)) {
+                   waiting = false; toRun = timeoutBranch; 
+                 }
+                 else // A commit was received just before the timeout.
+                   while(waiting) wait()  // Wait to be woken
+              } // end of if(waiting)
+            } // end of else (with timeout)
+         }// end ! if(!allBranchesClosed)
       } // end of if(!success)
 
       // Can now run branch toRun
       // Check if all branches closed
-      if(allBranchesClosed){
-        if(orElseBranch>=0) toRun = orElseBranch
-        else throw new Abort; 
+      if (allBranchesClosed){
+        if (orElseBranch>=0) 
+           toRun = orElseBranch
+           else 
+            throw new Abort; 
+        }
       }
       
       
@@ -423,7 +432,7 @@ class Alt(events: Seq[Alt.Event], priAlt: Boolean)
     /* Messages from channels to close */
     def chanClosed(n:Int) = synchronized{
       if(status==INIT || status==PAUSE){  nClosed+=1; }
-      else if(status==WAIT){
+      else if(status==WAIT || status==WAITTO){
         nClosed+=1; 
         if(nReged==nClosed) MainAlt.allClosed; 
       }
@@ -445,9 +454,10 @@ class Alt(events: Seq[Alt.Event], priAlt: Boolean)
     /* Receive the number of registered processes from MainAlt, ready for a
        wait.  Return result indicates whether all processes have been closed.
     */
-    def setReged(nReged:Int) : Boolean = synchronized{
+    def setReged(nReged:Int, timeout: Boolean) : Boolean = synchronized{
       assert(status==INIT); this.nReged = nReged; 
-      status = WAIT; return(nReged==nClosed);
+      if(timeout) status = WAITTO else status = WAIT; 
+      return(nReged==nClosed);
     }
 
     /* Pass to MainAlt any request that has come in while it was sleeping in
@@ -609,6 +619,7 @@ object Alt{
   }
 
 }
+
 
 
 

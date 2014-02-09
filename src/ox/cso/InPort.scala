@@ -27,8 +27,8 @@ package ox.cso;
 {{{
  @version 03.20120824
  @author Bernard Sufrin, Oxford
- $Revision: 553 $ 
- $Date: 2012-08-25 13:22:48 +0100 (Sat, 25 Aug 2012) $
+ $Revision: 640 $ 
+ $Date: 2013-09-24 12:48:42 +0100 (Tue, 24 Sep 2013) $
 }}}
 
  An <code>InPort[T]</code> is one of the endpoints of a
@@ -140,10 +140,14 @@ trait InPort [+T]
   @deprecated("Use the form guard &&& port", "2012") def apply (guard: => Boolean) = 
             new InPort.GuardedInPortEvent(this, ()=>(open&&guard))
 
-  /** Register an attempt by an Alt to use the port  */
-  private [cso] def registerIn(a:Alt, n:Int) : Int
-  /** Deregister an attempt by an Alt to use the port  */
-  private [cso] def deregisterIn(a:Alt, n:Int) 
+  /** Register an attempt by an Alt to use the port: unsupported by default */
+  private [cso] def registerIn(a:Alt, n:Int) : Int = 
+          throw new  UnsupportedOperationException()
+
+  /** Deregister an attempt by an Alt to use the port: unsupported by default  */
+  private [cso] def deregisterIn(a:Alt, n:Int) : Unit =
+          throw new  UnsupportedOperationException()
+
   // def isRegisteredIn(a:Alt, n:Int) : Boolean
 }
 
@@ -215,6 +219,9 @@ object InPort{
   } 
   
 }
+
+
+
 
 
 

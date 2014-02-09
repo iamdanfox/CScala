@@ -9,7 +9,7 @@ You may not use this file except in compliance with the License.
 You may obtain a copy of the License at 
 
     http://www.opensource.org/licenses/artistic-license-2.0.php
-
+    
 Unless required by applicable law or agreed to in writing,
 software distributed under the License is distributed on an
 "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
@@ -30,8 +30,8 @@ package ox.cso;
 {{{
  @version 03.20120824
  @author Bernard Sufrin, Oxford
- $Revision: 553 $ 
- $Date: 2012-08-25 13:22:48 +0100 (Sat, 25 Aug 2012) $
+ $Revision: 640 $ 
+ $Date: 2013-09-24 12:48:42 +0100 (Tue, 24 Sep 2013) $
 }}}  
 */
 class BufImp [T: Manifest] (size: Int) extends Chan [T]
@@ -57,6 +57,10 @@ class BufImp [T: Manifest] (size: Int) extends Chan [T]
       else
       if (readers.forceAcquires) 
          { /* waiting readers have been notified */ }
+      // Notify registered alts of closure
+      for((a,n) <- regsIn)  a.chanClosed(n);
+      for((a,n) <- regsOut) a.chanClosed(n);
+
   }
   
   def !(value:T) = 
@@ -106,13 +110,13 @@ class BufImp [T: Manifest] (size: Int) extends Chan [T]
 
   // Stuff involving alts
   // Implementations build on register in trait Chan
-  def registerIn(a:Alt, n:Int) : Int = synchronized{
+  override def registerIn(a:Alt, n:Int) : Int = synchronized{
     if (!_isOpen) return CLOSED; 
     if (length>0) return YES
     else register(a,true,n); 
   }
    
-  def registerOut(a:Alt,n:Int) : Int =  synchronized{
+  override def registerOut(a:Alt,n:Int) : Int =  synchronized{
     if (!_isOpen) return CLOSED; 
     if (length<size) return YES
     else register(a,false,n); 
@@ -121,5 +125,7 @@ class BufImp [T: Manifest] (size: Int) extends Chan [T]
 }
 
 object BufImp extends NameGenerator("BufImp")
+
+
 
 

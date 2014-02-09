@@ -78,8 +78,8 @@ package ox.cso
 {{{
  @version 03.20120824
  @author Bernard Sufrin, Oxford
- $Revision: 553 $ 
- $Date: 2012-08-25 13:22:48 +0100 (Sat, 25 Aug 2012) $
+ $Revision: 634 $ 
+ $Date: 2013-04-22 22:30:15 +0100 (Mon, 22 Apr 2013) $
 }}} 
 
 TODO: Do thread groups make sense?
@@ -128,7 +128,7 @@ class Process(name: String)(body: () => Unit) extends Function0[Unit]
                       clean = false
                       otherHandle.interrupt 
                     }
-                    case other => 
+                    case other : Throwable => 
                     { if (Process.traceExn) other.printStackTrace
                       thrown = other
                       clean = false 
@@ -162,6 +162,8 @@ class ThreadHandle(name: String, daemon: Boolean, body: () => Unit) extends java
   private var status     = true
   private var thrown : Throwable = null
   private var thread : Thread    = null
+  
+  override def toString : String = name
   
   private def terminate(status: Boolean) = synchronized 
   { this.status = status
@@ -207,8 +209,8 @@ class ThreadHandle(name: String, daemon: Boolean, body: () => Unit) extends java
   def isDaemon = daemon
   
   /** The name of the process */
-  def getName = name
-    
+  def getName = name  
+  
   override def run = 
   { var originalName = ""
     try   { thread   = java.lang.Thread.currentThread
@@ -219,7 +221,7 @@ class ThreadHandle(name: String, daemon: Boolean, body: () => Unit) extends java
           } 
     catch { case thrown@Stop(_,_) => { terminate(true);  this.thrown = thrown } 
             
-            case other            => 
+            case other : Throwable  => 
             { if (Process.traceExn) other.printStackTrace
               terminate(false)
               this.thrown = other 
@@ -276,9 +278,24 @@ class ParException(lname: String, causeL: Throwable, rname: String, causeR: Thro
     a default period (4 seconds) is used; if it is set to zero
     then threads are not pooled. 
     
+    <p>
+    If the value of the runtime JVM property <code>ox.cso.pool.java</code> is
+    1 then a standard java pooled executor is used instead of the CSO pooled executor.
+    
+    
+    <p>
+    This kind of pooling was built to help find a bug in the Java implementation
+    of threads on OS/X 10.7 that makes pooling of the threads used by large numbers of
+    short-lived CSO processes fail: the symptom being the generation of
+    excessively large numbers of kernel threads when they are not needed. 
+    I originally suspected my implementation
+    of pooling, but the standard pooled executor suffers from this as well. 
+    The same program using the UnpooledExecutor implementation doesn't have this 
+    problem.
+    
     @see Process
 {{{    
-    $Id: Process.scala 553 2012-08-25 12:22:48Z sufrin $
+    $Id: Process.scala 634 2013-04-22 21:30:15Z sufrin $
 }}}
    
 */
@@ -291,9 +308,15 @@ object ThreadHandle
    /** True if a pool time as specified */
    val exPoolTime = poolTime!=null
    /** keepAlive time */
-   val keep = if (exPoolTime && poolTime.matches("[0-9]+")) Integer.parseInt(poolTime) else 4;         
+   val keep     = if (exPoolTime && poolTime.matches("[0-9]+")) Integer.parseInt(poolTime) else 4;         
+   /** Whether to use a standard java pooled executor (debugging) for non-daemons */
+   val javapool = java.lang.System.getProperty("ox.cso.pool.java")=="1"
    /** An executor -- pooled if the keepAlive time is > 0 */
-   val threads : Executor = if (keep>0) new PooledExecutor(keep, false) else new UnpooledExecutor(false)
+   val threads : Executor = 
+       if (javapool) new JavaPooledExecutor(keep, false) 
+       else
+       if (keep>0) new PooledExecutor(keep, false) 
+       else new UnpooledExecutor(false)
    /** An executor for daemons -- pooled if the keepAlive time is > 0  */
    val daemons : Executor = if (keep>0) new PooledExecutor(keep, true)  else new UnpooledExecutor(true)
                     
@@ -320,6 +343,9 @@ object Process
   }
   var traceExn = System.getProperty("ox.cso.process.traceexception") != "off"
 }
+
+
+
 
 
 

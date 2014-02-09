@@ -21,7 +21,7 @@ License.
 
 
 package ox.cso
-import  scala.collection.mutable.HashSet
+import  scala.collection.mutable.Queue
 
 /**
         A pooled-thread execution mechanism that keeps its server threads around
@@ -40,53 +40,48 @@ import  scala.collection.mutable.HashSet
         a default period (4 seconds) is used; if it is set to zero
         then threads are not pooled. 
         
+        Almost the same as PooledExecutor but organised as a monitor
+        with everything synchronized on the pool itself. This in 
+        order to chase a misfunction that (right now) has only been
+        detected in an OSX 10.7 JVM.
+        
         @see ThreadHandle
         
 {{{
  @version 03.20120824
  @author Bernard Sufrin, Oxford
- $Revision: 634 $ 
- $Date: 2013-04-22 22:30:15 +0100 (Mon, 22 Apr 2013) $
+ $Revision: 628 $ 
+ $Date: 2013-02-13 19:09:34 +0000 (Wed, 13 Feb 2013) $
 }}}
 */
 
 
-class PooledExecutor(keepSecs: Int, isDaemon: Boolean) extends Executor
+class PooledExecutorMonitored(keepSecs: Int, isDaemon: Boolean) extends Executor
 {  
    /** 
        The set of servers that have not yet timed out and are waiting
-       to be given work.
+       to be given work. This is only incidentally kept as a queue.
        <p>
        Invariant: every <code>Server</code> in the pool has already run
        at least one job.
    */
-   private val pool = new HashSet[Server]
+   private val pool = new Queue[Server]
    
-   def poolEmpty : Boolean = synchronized { pool.isEmpty }
-   
-   /** Add a server to the pool 
+   /** Remove a server from the pool 
+       <p>
+       @todo Make this less of a bottleneck
    */
-   def addServer(server: Server) = synchronized
-   {  
-       if (instrumentingretire) System.err.println("[Pooling "+server.toString+"@"+pool.size+"]")
-       pool.add(server)
+   private def removeFromPool(server: Server) = synchronized
+   {   // Servers depart the pool at quiet times
+       // So this is not as bad a bottleneck as it looks
+       pool.dequeueFirst((_==server))
    }
    
-   /** Remove a server from the pool */
-   def removeServer(server: Server) = synchronized
-   {   server.finish
-       if (instrumentingretire) System.err.println("[Retiring "+server.toString+"]")
-       pool.remove(server)
+   private def addToPool(server: Server) = synchronized
+   {   pool.enqueue(server)
    }
    
-   /** Fetch a server from the pool 
-   */
-   def fetchServer : Server = synchronized 
-   {   val server = pool.last
-       if (instrumentingretire) System.err.println("[Fetching "+server.toString+"]")
-       pool.remove(server)
-       server
-   }
+
    
    /**
         Time (in ms) that a server can be dormant
@@ -94,17 +89,12 @@ class PooledExecutor(keepSecs: Int, isDaemon: Boolean) extends Executor
    private val timeout = keepSecs * 1000
    
    /**  Statistic */
-   private var executeCount, poolCount, retireCount = 0L 
-   
-   def incExecute = synchronized { executeCount+=1 }  
-   def incPool    = synchronized { poolCount+=1 }  
-   def incRetire  = synchronized { retireCount+=1 }  
+   private var executeCount, poolCount, retireCount = 0L   
    
    import java.lang.System.{getProperty}
    import java.lang.Runnable
    
-   private val instrumenting       = getProperty("ox.cso.pool.instrument")=="1"
-   private val instrumentingretire = getProperty("ox.cso.pool.instrument.retire")=="1"
+   private val instrumenting = getProperty("ox.cso.pool.instrument")=="1"
    
    override def toString = if (isDaemon) "Daemon pool" else "Process pool"
    
@@ -130,15 +120,25 @@ class PooledExecutor(keepSecs: Int, isDaemon: Boolean) extends Executor
        on this job; otherwise start one of the waiting servers.
    */
    def execute(runnable: Runnable) = synchronized
-   { incExecute
-     if (poolEmpty) 
-       { val s = new Server
-         s.start(runnable)
+   { executeCount += 1;
+     // pool synchronized
+     { if (pool.isEmpty) 
+       { try
+         { val s = new Server
+           s.start(runnable)
+         }
+         catch 
+         { case err: java.lang.OutOfMemoryError =>
+           { report()
+             throw(err)
+           }
+         }
        }
        else
-       { fetchServer.reStart(runnable)
-         incPool
+       { pool.dequeue.reStart(runnable)
+         poolCount += 1
        }
+     }
    }
    
    /**
@@ -150,14 +150,16 @@ class PooledExecutor(keepSecs: Int, isDaemon: Boolean) extends Executor
         The usual way to call this method is via <code>CSO.exit</code>.
    */
    override def shutdown = synchronized
-   { while (!poolEmpty) fetchServer.finish() }
+   { // pool synchronized 
+     { while (!pool.isEmpty) pool.dequeue.finish() }
+   }
 
    /**
         A <code>put/get</code> pair whose <code>get</code> is bounded
         by the given timeout.  If the timeout elapses then a null
         is returned.
    */
-   class WaitVar(timeout: Long)
+   @inline class WaitVar(timeout: Long)
    { private var value: Runnable = null
      private var defined  = false
      
@@ -170,19 +172,14 @@ class PooledExecutor(keepSecs: Int, isDaemon: Boolean) extends Executor
            return r
          }
      
-     def abandon : Unit = synchronized
-     { value   = null
-       defined = true
-       notify
-     }
-     
-     
-     def put(it: Runnable) : Unit = 
+     def put(it: Runnable) : Unit =
+     {
          synchronized
          { value   = it
            defined = true
            notify
          } 
+     }
    }
    
    /**
@@ -191,14 +188,11 @@ class PooledExecutor(keepSecs: Int, isDaemon: Boolean) extends Executor
         servers and waits for another runnable. If it times out
         while awaiting work then it removes itself from the pool.
    */
-   class Server extends java.lang.Thread
+   private class Server extends java.lang.Thread
    { 
      val work    = new WaitVar(timeout)
      var started = false
      var uses    = 0L
-     
-     val hcode   = super.hashCode
-     override def hashCode = hcode
      
      /** 
          Start this thread working on the given <code>Runnable</code>. 
@@ -215,14 +209,14 @@ class PooledExecutor(keepSecs: Int, isDaemon: Boolean) extends Executor
      /** 
          Start this thread working on the given <code>Runnable</code>. 
      */
-     def reStart(runnable: Runnable)
+     @inline def reStart(runnable: Runnable)
      { 
        work.put(runnable)
      }
      
-     def finish() = synchronized
+     def finish() 
      { 
-       work.abandon
+       work.put(null)
        finalize()
      }
      
@@ -234,23 +228,19 @@ class PooledExecutor(keepSecs: Int, isDaemon: Boolean) extends Executor
         tree.
      */
      override def run 
-     { val originalName = java.lang.Thread.currentThread.getName
-       try
+     { try
        { 
          var task = work.get
          while (task != null)
          { uses += 1
-           if (instrumentingretire) 
-              System.err.println(originalName+"("+uses.toString+"): "+task.toString);
            task.run                                 // work
            task = null                              // for the gc
-           addServer(this)                          // signal readiness for work
-           if (instrumentingretire) System.err.println("[Waiting for work: "+this+"]")
+           addToPool(this)                          // ready for work
            task = work.get                          // await work (or timeout)
          }
          // task is no Longer in use because it retired
-         incRetire
-         removeServer(this)
+         retireCount += 1
+         removeFromPool(this)
        }
        finally
        { 
@@ -260,7 +250,6 @@ class PooledExecutor(keepSecs: Int, isDaemon: Boolean) extends Executor
      override def finalize()
      {
        if (instrumenting) Console.println(this + " " + " was reused: "+uses)
-       super.finalize()
      }
    }
 }

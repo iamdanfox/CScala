@@ -35,8 +35,8 @@ and sets the <code>forced</code> flag. A semaphore can be forced at most once.
 {{{
  @version 03.20120824
  @author Bernard Sufrin, Oxford
- $Revision: 553 $ 
- $Date: 2012-08-25 13:22:48 +0100 (Sat, 25 Aug 2012) $
+ $Revision: 632 $ 
+ $Date: 2013-04-16 20:41:19 +0100 (Tue, 16 Apr 2013) $
 }}}
 */
 class CountingSemaphore(permits_ : Int)
@@ -88,7 +88,13 @@ class CountingSemaphore(permits_ : Int)
   
   /** RETURN: true if the semaphore was forced */
   def isForced = forced
+  
+  /** Synonym for acquire */
+  @inline def down = acquire
+  /** Synonym for release */
+  @inline def up   = release
 }
+
 
 
 

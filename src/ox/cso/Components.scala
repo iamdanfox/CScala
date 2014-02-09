@@ -36,8 +36,8 @@ retaining the P'n'P names).
 {{{
 @version 03.20120824
 @author Bernard Sufrin, Oxford
-$Revision: 553 $ 
-$Date: 2012-08-25 13:22:48 +0100 (Sat, 25 Aug 2012) $
+$Revision: 654 $ 
+$Date: 2014-01-05 12:13:02 +0000 (Sun, 05 Jan 2014) $
 }}}  
 */
 object Components
@@ -242,14 +242,31 @@ object Components
   
   /**
   Repeatedly output lines read from the given <tt>LineNumberReader</tt>.  
+  <p>
+  There is a potential race condition that the code here 
+  does not forbid. The race condition results in
+  an unnecessary invocation of <tt>in.readLine</tt> that will
+  wait for input even though out is already closed.
+  <p>
+  Typically this happens when a program reading from the keyboard terminates
+  and closes channels "downstream" of the keyboard. This leaves 
+  an unconsummated readLine waiting at the keyboard itself, that 
+  has to be cleared by typing an end-line or EOF character.  
+  <p>  
+  The closing of out should really abort an in.readLine that is
+  already in progress. But that would add unwarranted complexity 
+  to channel implementations.
   */   
   def lines(in: java.io.LineNumberReader, out: ![String]): PROC = proc
   { repeat 
-    { val line = try { in.readLine } catch { case _ => null }
+    { 
+      if (!out.isOpenForWrite) stop // nowhere to send anything we read.
+      val line = try { in.readLine } catch { case _ : java.io.IOException => null }
       if (line==null) stop
       out!line
     }
-    (out.closeout || in.close)() 
+    out.closeout
+    in.close
   }
   
   /**
@@ -276,6 +293,9 @@ object Components
     (in.closein || out.closeout || ticker.close)()   
   }
 }
+
+
+
 
 
 
