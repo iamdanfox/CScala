@@ -10,7 +10,7 @@ import ox.cso.Components._
  */
 object RHTServer {
   var port = 8088
-  var servertimeout = 30 * 1000 // five minutes
+  var servertimeout = 5*60 * 1000 // five minutes
 
   type Client[S, T] = SyncNetIO.Client[S, T]
 
@@ -18,17 +18,19 @@ object RHTServer {
 
   def main(args: Array[String]) =
     {
-//      val clients = OneOne[Client[RHTReq, RHTRep]]
       val table = new scala.collection.mutable.HashMap[String, Value]
-      NetIO.serverPort(port, 0, true, handleclient).fork
+      
+      // bind a handler function to the port with specified backlog
+      NetIO.serverPort(port, 0, false, handleclient).fork
 
       Console.println("Started Server (%d) with timeout %d ".format(port, servertimeout))
 
-      // spawn a single proc to deal with this client then terminate 
+      // spawn a proc to deal with a single client then return 
       def handleclient(client: Client[RHTReq, RHTRep]) = {
         Console.println(client.socket)
         proc("Serving: %s".format(client.socket)) {
           val start = time
+          // respond to client Requests or timeout
           serve(client ==> {
             case Set(k, v) => {
               table.update(k, Value(v, start))
