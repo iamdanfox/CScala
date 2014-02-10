@@ -19,15 +19,14 @@ object RHTClient {
 
   def main(args: Array[String]): Unit =
     {
-
       val server = NetIO.clientConnection[RHTReq, RHTRep](host, port, sync)
 
       val fromKbd = OneOne[String]
-
       keyboard(fromKbd).fork
       
       Thread.sleep(200) // makes the client terminal come up in Eclipse
 
+      // identify client to the server
       println("Type a name to identify yourself")
       val name:String = fromKbd?;
       server!Identify(name)
