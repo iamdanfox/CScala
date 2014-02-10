@@ -10,7 +10,7 @@ import ox.cso.Components._
  */
 object RHTServer {
   var port = 8088
-  var servertimeout = 5 * 60 * 1000 // five minutes
+  var servertimeout = 30 * 1000 // five minutes
 
   type Client[S, T] = SyncNetIO.Client[S, T]
 
@@ -18,48 +18,46 @@ object RHTServer {
 
   def main(args: Array[String]) =
     {
-      val clients = OneOne[Client[RHTReq, RHTRep]]
+//      val clients = OneOne[Client[RHTReq, RHTRep]]
       val table = new scala.collection.mutable.HashMap[String, Value]
-      NetIO.serverPort(port, clients).fork
+      NetIO.serverPort(port, 0, true, handleclient).fork
 
       Console.println("Started Server (%d) with timeout %d ".format(port, servertimeout))
 
-      serve {
-        clients ==> {
-          client =>
-            Console.println(client.socket)
-            // spawn a single proc to deal with this client
-            proc("Serving: %s".format(client.socket)) {
-              val start = time
-              serve(client ==> {
-                case Set(k, v) => {
-                  table.update(k, Value(v, start))
-                  client ! Tack(start)
-                }
-                case Get(k) => {
-                  table get k match {
-                    case Some(v) => client ! v
-                    case None => client ! Nack
-                  }
-                }
-                case Del(k) => {
-                  table get k match {
-                    case Some(Value(_, t)) => { table -= k; client ! Tack(t) }
-                    case None => client ! Nack
-                  }
-                }
+      // spawn a single proc to deal with this client then terminate 
+      def handleclient(client: Client[RHTReq, RHTRep]) = {
+        Console.println(client.socket)
+        proc("Serving: %s".format(client.socket)) {
+          val start = time
+          serve(client ==> {
+            case Set(k, v) => {
+              table.update(k, Value(v, start))
+              client ! Tack(start)
+            }
+            case Get(k) => {
+              table get k match {
+                case Some(v) => client ! v
+                case None => client ! Nack
               }
-                | after(servertimeout) ==> {
-                  Console.println("Slow client!"); stop
-                })
+            }
+            case Del(k) => {
+              table get k match {
+                case Some(Value(_, t)) => { table -= k; client ! Tack(t) }
+                case None => client ! Nack
+              }
+            }
+          }
+            | after(servertimeout) ==> {
+              Console.println("Slow client, killing process"); stop
+            })
 
-              Console.println("closing " + client.socket)
-              client ! Close
-              //client.close
-              Console.println("closed " + client.socket)
-            }.fork;
-        }
+          Console.println("closing " + client.socket)
+          client ! Close
+          //client.close
+          Console.println("closed " + client.socket)
+        }.fork;
       }
+
     }
 }
 

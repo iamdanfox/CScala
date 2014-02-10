@@ -29,34 +29,33 @@ object RHTClient {
       Thread.sleep(200) // makes the client terminal come up in Eclipse
       println("Client started. Try 'foo baz' to assign foo to baz")
 
-      serve(fromKbd ==>
-        {
-          case raw =>
-            {
-              val line = raw.trim
-              val instr = line.split("[ ]+")
-              instr.length match {
-                case 0 =>
-                case 1 =>
-                  instr(0) match {
-                    case "." => fromKbd.close // doesn't close the connection
-                    case _ => (server ! Get(instr(0)))
-                  }
-                case 2 =>
-                  instr(0) match {
-                    case "del" => (server ! Del(instr(1)))
-                    case _ => (server ! Set(instr(0), instr(1)))
-                  }
-                case _ =>
-                  println("Try 'foo baz'")
-              }
+      serve(
+        // listen to input from the keyboard
+        fromKbd ==> {
+          raw =>
+            val line = raw.trim
+            val instr = line.split("[ ]+")
+            instr.length match {
+              case 0 =>
+              case 1 =>
+                instr(0) match {
+                  case "." => fromKbd.close // doesn't close the connection
+                  case _ => (server ! Get(instr(0)))
+                }
+              case 2 =>
+                instr(0) match {
+                  case "del" => (server ! Del(instr(1)))
+                  case _ => (server ! Set(instr(0), instr(1)))
+                }
+              case _ =>
+                println("Unrecognized. Try 'foo baz'")
             }
         }
-        | server ==>
-        {
-          case Close => { Console.println("Server closed connection"); stop }
-          case fromServer => Console.println(fromServer)
-        })
+        // listen to messages from the server
+          | server ==> {
+            case Close => { Console.println("Server closed connection"); stop }
+            case fromServer => Console.println(fromServer)
+          })
       fromKbd.close
       server.close
       Console.println("Type <eof> to close down")
