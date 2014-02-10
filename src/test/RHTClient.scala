@@ -27,7 +27,7 @@ object RHTClient {
       keyboard(fromKbd).fork
       
       Thread.sleep(200) // makes the client terminal come up in Eclipse
-      println("Client started. Try 'Set foo baz'")
+      println("Client started. Try 'foo baz' to assign foo to baz")
 
       serve(fromKbd ==>
         {
@@ -39,15 +39,16 @@ object RHTClient {
                 case 0 =>
                 case 1 =>
                   instr(0) match {
-                    case "." => fromKbd.close
+                    case "." => fromKbd.close // doesn't close the connection
                     case _ => (server ! Get(instr(0)))
                   }
                 case 2 =>
-                case 3 =>
                   instr(0) match {
                     case "del" => (server ! Del(instr(1)))
                     case _ => (server ! Set(instr(0), instr(1)))
                   }
+                case _ =>
+                  println("Try 'foo baz'")
               }
             }
         }
