@@ -10,12 +10,7 @@ import ox.cso.Components._
  */
 object RHTClient {
   var port = RHTServer.port
-  var trials = 10
-  var size = 10
-  var servertimeout = 10000
-  var par = 1
   var sync = false
-  //  var netcon = false
   var host = "localhost"
 
   type Client[S, T] = SyncNetIO.Client[S, T]

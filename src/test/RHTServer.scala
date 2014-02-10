@@ -10,13 +10,7 @@ import ox.cso.Components._
  */
 object RHTServer {
   var port = 8088
-  var trials = 10
-  var size = 10
   var servertimeout = 5*60*1000 // five minutes
-  var par = 1
-//  var sync = false
-//  var netcon = false
-  var host = "localhost"
 
   type Client[S, T] = SyncNetIO.Client[S, T]
 
@@ -24,21 +18,8 @@ object RHTServer {
 
   def main(args: Array[String]) =
     {
-//      for (arg <- args)
-//        if (arg.equals("-sync")) sync = true
-//        else if (arg.equals("-netio")) netcon = true
-//        else if (arg.matches("-s=[0-9]+")) {servertimeout = Integer.parseInt(arg.substring(3)) }
-//        else if (arg.matches("-p=[0-9]+")) port = Integer.parseInt(arg.substring(3))
-//        else if (arg.startsWith("-h=")) host = arg.substring(3)
-
-//      if (netcon) Console.println("SyncNetIO is deprectaed right now: don't use -netio")
-
       val clients = OneOne[Client[RHTReq, RHTRep]]
       val table = new scala.collection.mutable.HashMap[String, Value]
-      var n = 0
-//      if (netcon)
-//        SyncNetIO.serverPort(port, clients).fork
-//      else
       NetIO.serverPort(port, clients).fork
 
       Console.println("Started Server (%d) with timeout %d ".format(port, servertimeout))
@@ -47,6 +28,7 @@ object RHTServer {
         clients ==>
           { client =>
             Console.println(client.socket)
+            // spawn a single proc to deal with this client
             proc("Serving: %s".format(client.socket)) {
               val start = time
               serve(client ==>
