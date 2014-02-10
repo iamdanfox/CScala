@@ -27,8 +27,12 @@ object RHTClient {
       keyboard(fromKbd).fork
       
       Thread.sleep(200) // makes the client terminal come up in Eclipse
-      println("Client started. Try 'foo baz' to assign foo to baz")
 
+      println("Type a name to identify yourself")
+      val name:String = fromKbd?;
+      server!Identify(name)
+      
+      println("Client started. Try 'foo baz' to assign foo to baz")
       serve(
         // listen to input from the keyboard
         fromKbd ==> {

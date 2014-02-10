@@ -30,8 +30,14 @@ object RHTServer {
         Console.println(client.socket)
         proc("Serving: %s".format(client.socket)) {
           val start = time
+          
+          
+          
           // respond to client Requests or timeout
           serve(client ==> {
+            case Identify(n) => {
+              println("Client identified as "+n)
+            }
             case Set(k, v) => {
               table.update(k, Value(v, start))
               client ! Tack(start)
@@ -63,13 +69,16 @@ object RHTServer {
     }
 }
 
-trait RHTReq {}
 trait RHTRep {}
 case object Ack extends RHTRep {}
 case object Nack extends RHTRep {}
 case class Tack(time: Long) extends RHTRep {}
 case class Value(value: String, time: Long) extends RHTRep {}
 case object Close extends RHTRep {}
+
+
+trait RHTReq {}
+case class Identify(name : String) extends RHTReq {}
 case class Set(key: String, value: String) extends RHTReq {}
 case class Get(key: String) extends RHTReq {}
 case class Del(key: String) extends RHTReq {}
