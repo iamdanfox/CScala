@@ -1,3 +1,4 @@
+package test
 import ox.CSO._
 import ox.cso.Connection
 import ox.cso.NetIO
@@ -127,15 +128,15 @@ object RHT
   }
 }
 
-trait RHTReq {}
-trait RHTRep {}
-case  object Ack                              extends RHTRep {}
-case  object Nack                             extends RHTRep {}
-case  class  Tack(time: Long)                 extends RHTRep {}
-case  class  Value(value: String,   time: Long) extends RHTRep {}
-case  object Close                            extends RHTRep {}
-case  class  Set(key: String, value: String)  extends RHTReq {}
-case  class  Get(key: String)                 extends RHTReq {}
-case  class  Del(key: String)                 extends RHTReq {}
-case  object Timeout                          extends RHTReq {}
+//trait RHTReq {}
+//trait RHTRep {}
+//case  object Ack                              extends RHTRep {}
+//case  object Nack                             extends RHTRep {}
+//case  class  Tack(time: Long)                 extends RHTRep {}
+//case  class  Value(value: String,   time: Long) extends RHTRep {}
+//case  object Close                            extends RHTRep {}
+//case  class  Set(key: String, value: String)  extends RHTReq {}
+//case  class  Get(key: String)                 extends RHTReq {}
+//case  class  Del(key: String)                 extends RHTReq {}
+//case  object Timeout                          extends RHTReq {}
 
