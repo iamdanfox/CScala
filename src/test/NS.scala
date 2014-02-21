@@ -18,33 +18,37 @@ object NS {
 
   private var impl: NameServer = null
 
+  def isRunning(): Boolean = this.impl!=null
+  
   // construct if necessary, otherwise just return the singleton
-  def apply(): NameServer = if (impl == null) { impl = new Impl(); impl } else impl
+  def apply(): NameServer = if (!isRunning()) { impl = new Impl(); impl } else impl
 
-//  def main(args: Array[String]) = {
-//    val ns = NS();
-//  }
-  
-  
-  
+  //  def main(args: Array[String]) = {
+  //    val ns = NS();
+  //  }
+
   class Impl extends NameServer {
 
     private val hashmap = new scala.collection.mutable.HashMap[String, (InetAddress, Int)]();
     private val putCh = ManyOne[(String, InetAddress, Int, OneOne[Boolean])]
     private val getCh = ManyOne[(String, OneOne[Option[(InetAddress,Int)]])]
-    
-    def Impl() {
-      // spawn hashmap guard proc and server
-      registry().fork
-      NetIO.serverPort(port, 0, false, handler).fork
-    }
 
+    // Constructor: spawns hashmap guard proc and server
+    registry().fork
+    NetIO.serverPort(port, 0, false, handler).fork
+    
+    /**
+     * Add a new mapping from String -> (InetAddress, Port)
+     */
     def register(name : String, address: InetAddress, port: Int) : Boolean = {
       val rtnCh = OneOne[Boolean]
       putCh!((name,address,port,rtnCh))
       return rtnCh?
     }
     
+    /**
+     * Looks up the name in the registry
+     */
     def lookup(name : String) : Option[(InetAddress,Int)] = {
       val rtnCh = OneOne[Option[(InetAddress,Int)]]
       getCh!((name,rtnCh))
@@ -71,6 +75,9 @@ object NS {
       putCh.close; getCh.close;
     }
 
+    /**
+     * Handle each new client that requests.
+     */
     private def handler(client: NetIO.Client[Msg, Msg]) = {
       proc("NameServer handler for " + client.socket) {
         // react appropriately to first message, then close

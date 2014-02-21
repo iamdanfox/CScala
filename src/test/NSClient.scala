@@ -10,28 +10,13 @@ import test._
 
 object NSClient {
 
-  // This client will attempt to look up the address of the 'DummyEntry' service
-  def nameServerLookup(name : String) : Option[(InetAddress,Int)] = {
-    val nameServer = NetIO.clientConnection[Msg, Msg]("localhost", 7700, false) // TODO make this broadcast
-    val response = nameServer!?Lookup(name)
-    nameServer.close  // NameServer currently only serves one request
-    return (response match {
-      case Success(n,addr,port) => Some((addr,port))
-      case _ => None
-    })
-  }
-  
+  // This client will attempt to look up the address of the 'DummyEntry' service  
   def main(args: Array[String]): Unit = {
     println("Client started")
-
-    // TODO: make this broadcast rather than a specific host
-    println(nameServerLookup("DummyService"))
     
-    // send broken lookup...    
-//    nameServer = NetIO.clientConnection[NameServerMsg, NameServerMsg]("localhost", 7700, false)
-//    nameServer ! Lookup("DoesntExist")
-//    println(nameServer?)
-
+    NS().register("DummyService", InetAddress.getByName("localhost"), 3301)
+    
+    println(NS().lookup("DummyService"))
   }
 
 }

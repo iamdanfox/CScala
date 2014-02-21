@@ -16,6 +16,8 @@ object ExampleService {
   
   def main(args: Array[String]): Unit = {
     
+    NS()
+    
     // send register (DummyEntry,localhost/127.0.0.1,0)
     var nameServer = NetIO.clientConnection[Msg, Msg]("localhost", 7700, false)
     nameServer ! Register("ExampleService", InetAddress.getByName("localhost"), myport)
