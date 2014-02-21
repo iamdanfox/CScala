@@ -22,6 +22,8 @@ object ExampleService {
     println(nameServer?)
     nameServer.close
     
+    // service can now expect people to connect directly to it.
+    
   }
 
 }

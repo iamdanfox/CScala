@@ -8,30 +8,37 @@ import scala.collection.mutable.HashMap
 import java.net._
 
 /**
- * Listen on a specific port.
- * Allow services to register
+ * Listen
+ * Allow services to register (either by listening over a particular port, 
+ * or through internal JVM communication).
  * Allow processes to lookup services.
  */
 object NameServer {
 
+  // publically accessible
   val port = 7700;
-
   type Name = String;
-
   val putCh = ManyOne[(Name, InetAddress, OneOne[Boolean])]
   val getCh = ManyOne[(Name, OneOne[Option[InetAddress]])]
+  
+  private var registryThread = null.asInstanceOf[ox.cso.ThreadHandle]
 
   def main(args: Array[String]) = {
     println("starting")
-    registry().fork
+    
+    // if registry has already been forked, don't do anything.
+    if (registryThread==null || (registryThread!=null && registryThread.isTerminated)){
+      registryThread = registry().fork  
+    }
+    
 
+    // dummy insertion
     (proc {
       val respCh = OneOne[Boolean];
       // TODO: PORT!
       putCh ! (("DummyEntry", InetAddress.getByName("localhost"), respCh))
       println("Entered DummyEntry: " + (respCh?))
     })();
-    // (behaves correctly when a duplicate name attempt is made)
 
     NetIO.serverPort(port, 0, false, handler).fork
     println("all started")
@@ -81,6 +88,6 @@ object NameServer {
       }
       // No serve loop
       client.close
-    }.fork
+    }.fork // TODO: why bother forking?
   }
 }
