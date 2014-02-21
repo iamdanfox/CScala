@@ -19,6 +19,7 @@ object RHTClient {
 
   def main(args: Array[String]): Unit =
     {
+          // DESIRED: get me the RHT server, returns bi channel.
       val server = NetIO.clientConnection[RHTReq, RHTRep](host, port, sync)
 
       val fromKbd = OneOne[String]
