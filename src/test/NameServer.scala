@@ -21,7 +21,18 @@ object NameServer {
   val getCh = ManyOne[(Name, OneOne[Option[InetAddress]])]
   
   def main(args: Array[String]) = {
+    println("starting")
+    registry().fork
+    
+    (proc{
+      val respCh = OneOne[Boolean];
+      // TODO: PORT!
+      putCh!(("DummyEntry",InetAddress.getByName("localhost"),respCh))
+      println("Succes: "+ (respCh?))
+    })();
+    
     NetIO.serverPort(port, 0, false, handler).fork
+    println("all started")
   }
   
   /**
