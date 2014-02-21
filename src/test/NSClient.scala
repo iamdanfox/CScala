@@ -15,15 +15,18 @@ object NSClient {
     println("Client started")
     
     // TODO: make this broadcast rather than a specific host
-    val nameServer = NetIO.clientConnection[NameServerMsg, NameServerMsg]("localhost", 7700, false)
     
     // send lookup.. expecting Success(DummyEntry,localhost/127.0.0.1,0)
+    var nameServer = NetIO.clientConnection[NameServerMsg, NameServerMsg]("localhost", 7700, false)
     nameServer!Lookup("DummyEntry")
     println(nameServer?)
-    
-    // send broken lookup...
+   
+    // send broken lookup...    
+    nameServer = NetIO.clientConnection[NameServerMsg, NameServerMsg]("localhost", 7700, false)
     nameServer!Lookup("DoesntExist")
     println(nameServer?)
+    
+    // Not quite terminating properly
   }
 
 }
