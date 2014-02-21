@@ -7,7 +7,6 @@ import test.NameServer.Name
  */
 trait NameServerMsg {}
 
-
 case class Register(name: Name, address: InetAddress, port: Int) extends NameServerMsg
 case class Lookup(name: Name) extends NameServerMsg
 

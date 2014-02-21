@@ -13,29 +13,30 @@ import java.net._
  * Allow processes to lookup services.
  */
 object NameServer {
-    
+
   val port = 7700;
-  
+
   type Name = String;
-  
-  val putCh = ManyOne[(Name,InetAddress,OneOne[Boolean])]
+
+  val putCh = ManyOne[(Name, InetAddress, OneOne[Boolean])]
   val getCh = ManyOne[(Name, OneOne[Option[InetAddress]])]
-  
+
   def main(args: Array[String]) = {
     println("starting")
     registry().fork
-    
-    (proc{
+
+    (proc {
       val respCh = OneOne[Boolean];
       // TODO: PORT!
-      putCh!(("DummyEntry",InetAddress.getByName("localhost"),respCh))
-      println("Entered DummyEntry: "+ (respCh?))
+      putCh ! (("DummyEntry", InetAddress.getByName("localhost"), respCh))
+      println("Entered DummyEntry: " + (respCh?))
     })();
-    
+    // (behaves correctly when a duplicate name attempt is made)
+
     NetIO.serverPort(port, 0, false, handler).fork
     println("all started")
   }
-  
+
   /**
    * registry ensures no race conditions
    */
@@ -44,35 +45,34 @@ object NameServer {
     val hashmap = new scala.collection.mutable.HashMap[Name, InetAddress](); // should it also store timestamp of insertion?
     serve(
       putCh ==> {
-        case (n,i,ch)  => 
-            if (hashmap.contains(n)) ch!false
-            else {
-              hashmap.put(n,i)
-              ch!true
-            }
+        case (n, i, ch) =>
+          if (hashmap.contains(n)) ch ! false
+          else {
+            hashmap.put(n, i)
+            ch ! true
+          }
       } | getCh ==> {
-        case (n,ch) => ch!hashmap.get(n)
-      }
-    )
+        case (n, ch) => ch ! hashmap.get(n)
+      })
     putCh.close; getCh.close;
   }
-  
+
   private def handler(client: NetIO.Client[NameServerMsg, NameServerMsg]) = {
-    proc("NameServer handler for "+client.socket){
+    proc("NameServer handler for " + client.socket) {
       // react appropriately to first message, then close
       client? match {
-        case Register(name,addr,port) =>
+        case Register(name, addr, port) =>
           val respCh = OneOne[Boolean]
-          putCh!((name,addr,respCh))
-          client! (respCh? match {
-            case true => Success(name,addr,0)
+          putCh ! ((name, addr, respCh))
+          client ! (respCh? match {
+            case true => Success(name, addr, 0)
             case false => Failure(name)
           })
         case Lookup(name) =>
           val respCh = OneOne[Option[InetAddress]]
-          getCh!((name,respCh))
-          client! (respCh? match {
-            case Some(addr) => Success(name,addr,0) // TODO port
+          getCh ! ((name, respCh))
+          client ! (respCh? match {
+            case Some(addr) => Success(name, addr, 0) // TODO port
             case None => Failure(name)
           })
       }
