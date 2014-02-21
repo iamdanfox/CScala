@@ -7,6 +7,15 @@ import ox.cso.Components._
 import scala.collection.mutable.HashMap
 import java.net._
 
+
+
+trait NameServer{
+  def register(name : String, address: InetAddress, port: Int) : Boolean;
+  def lookup(name : String) : Option[InetAddress];
+  
+  // deregister?
+}
+
 /**
  * Listen
  * Allow services to register (either by listening over a particular port, 
@@ -14,107 +23,127 @@ import java.net._
  * Allow processes to lookup services.
  */
 object NameServer {
-
-
-  val port = 7700;
-  type Name = String;
   
-    // publically accessible for intra JVM communication
-  val putCh = ManyOne[(Name, InetAddress, OneOne[Boolean])]
-  val getCh = ManyOne[(Name, OneOne[Option[InetAddress]])]
-  
-  private var registryThreadRunning = false
-
-  /**
-   * Ensures that a single registry process is running. NOOP if already running.
-   */
-  private def startRegistry(){
-    // if registry has already been forked, don't do anything.
-    if (!registryThreadRunning){
-      registry(putCh,getCh).fork
-      registryThreadRunning = true
-    }
-  }
-  
-  private var serverRunning = false;
-  
-  private def startServer(){
-    if (!serverRunning){
-        NetIO.serverPort(port, 0, false, handler).fork
-        serverRunning = true
-    }
-  }
-  
-  def start(){
-    startRegistry()
-    startServer()
-  }
-  
-  def main(args: Array[String]) = {
-    println("starting")
+  private object impl{
     
-    start()
-
-    // dummy insertion
-    (proc {
-      val respCh = OneOne[Boolean];
-      // TODO: PORT!
-      putCh ! (("DummyService", InetAddress.getByName("localhost"), respCh))
-      println("Entered DummyService: " + (respCh?))
-    })();
-
-    println("all started")
   }
-
-  /**
-   * registry maintains a Name -> InetAddress, ensuring no race conditions
-   */
-  private def registry(putCh: ManyOne[(Name, InetAddress, OneOne[Boolean])], 
-      getCh: ManyOne[(Name, OneOne[Option[InetAddress]])]) = proc {
-    println("registry started")
-    // TODO: registry should store the port, too
-    // TODO: should you be able to terminate the registry?
-    val hashmap = new scala.collection.mutable.HashMap[Name, InetAddress](); // should it also store timestamp of insertion?
-    serve(
-      putCh ==> {
-        case (n, i, rtn) =>
-          if (hashmap.contains(n)) 
-            rtn ! false
-          else {
-            hashmap.put(n, i)
-            rtn ! true
-          }
-      } | getCh ==> {
-        case (n, rtn) => rtn ! hashmap.get(n)
-      }
-    )
-    putCh.close; getCh.close;
-  }
-
-  private def handler(client: NetIO.Client[NameServerMsg, NameServerMsg]) = {
-    proc("NameServer handler for " + client.socket) {
-      // react appropriately to first message, then close
-      client? match {
-        case Register(name, addr, port) =>
-          val respCh = OneOne[Boolean]
-          putCh ! ((name, addr, respCh))
-          client ! (respCh? match {
-            case true => {
-              println("Added "+name+" to the registry")
-              Success(name, addr, 0)
-            }
-            case false => Failure(name)
-          })
-        case Lookup(name) =>
-          val respCh = OneOne[Option[InetAddress]]
-          getCh ! ((name, respCh))
-          client ! (respCh? match {
-            case Some(addr) => Success(name, addr, 0) // TODO port
-            case None => Failure(name)
-          })
-      }
-      // No serve loop
-      client.close
-    }.fork // TODO: why bother forking?
-  }
+  
+//  
+//  val port = 7700;
+//  type Name = String
+//  
+//  private val hashmap = new scala.collection.mutable.HashMap[String, (InetAddress, Int)]();
+//  
+//  def register(name : String, address: InetAddress, port: Int) : Boolean = {
+//    val rtnCh = OneOne[Boolean]
+//    putCh!((name,address,port,rtnCh))
+//    return rtnCh?
+//  }
+//  
+//  def lookup(name : String) : Option[InetAddress] = {
+//    val rtnCh = OneOne[Option[InetAddress]]
+//    getCh!((name,rtnCh))
+//    return rtnCh?
+//  }
+//  
+//  // publically accessible for intra JVM communication
+//  private val putCh = ManyOne[(Name, InetAddress, Int, OneOne[Boolean])]
+//  private val getCh = ManyOne[(Name, OneOne[Option[InetAddress]])]
+//  
+//  
+//  
+//  private var registryThreadRunning = false
+//
+//  /**
+//   * Ensures that a single registry process is running. NOOP if already running.
+//   */
+//  private def startRegistry(){
+//    // if registry has already been forked, don't do anything.
+//    if (!registryThreadRunning){
+//      registry(putCh,getCh).fork
+//      registryThreadRunning = true
+//    }
+//  }
+//  
+//  private var serverRunning = false;
+//  
+//  private def startServer(){
+//    if (!serverRunning){
+//        NetIO.serverPort(port, 0, false, handler).fork
+//        serverRunning = true
+//    }
+//  }
+//  
+//  def start(){
+//    startRegistry()
+//    startServer()
+//  }
+//  
+//  def main(args: Array[String]) = {
+//    println("starting")
+//    
+//    start()
+//
+//    // dummy insertion
+//    (proc {
+//      val respCh = OneOne[Boolean];
+//      // TODO: PORT!
+//      putCh ! (("DummyService", InetAddress.getByName("localhost"), respCh))
+//      println("Entered DummyService: " + (respCh?))
+//    })();
+//
+//    println("all started")
+//  }
+//
+//  /**
+//   * registry maintains a Name -> InetAddress, ensuring no race conditions
+//   */
+//  private def registry(putCh: ManyOne[(Name, InetAddress, OneOne[Boolean])], 
+//      getCh: ManyOne[(Name, OneOne[Option[InetAddress]])]) = proc {
+//    println("registry started")
+//    // TODO: registry should store the port, too
+//    // TODO: should you be able to terminate the registry?
+//    val hashmap = new scala.collection.mutable.HashMap[Name, InetAddress](); // should it also store timestamp of insertion?
+//    serve(
+//      putCh ==> {
+//        case (n, i, rtn) =>
+//          if (hashmap.contains(n)) 
+//            rtn ! false
+//          else {
+//            hashmap.put(n, i)
+//            rtn ! true
+//          }
+//      } | getCh ==> {
+//        case (n, rtn) => rtn ! hashmap.get(n)
+//      }
+//    )
+//    putCh.close; getCh.close;
+//  }
+//
+//  private def handler(client: NetIO.Client[NameServerMsg, NameServerMsg]) = {
+//    proc("NameServer handler for " + client.socket) {
+//      // react appropriately to first message, then close
+//      client? match {
+//        case Register(name, addr, port) =>
+//          val respCh = OneOne[Boolean]
+//          putCh ! ((name, addr, respCh))
+//          client ! (respCh? match {
+//            case true => {
+//              println("Added "+name+" to the registry")
+//              Success(name, addr, 0)
+//            }
+//            case false => Failure(name)
+//          })
+//        case Lookup(name) =>
+//          val respCh = OneOne[Option[InetAddress]]
+//          getCh ! ((name, respCh))
+//          client ! (respCh? match {
+//            case Some(addr) => Success(name, addr, 0) // TODO port
+//            case None => Failure(name)
+//          })
+//      }
+//      // No serve loop
+//      client.close
+//    }.fork // TODO: why bother forking?
+//  }
 }
