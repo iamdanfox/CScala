@@ -59,8 +59,8 @@ object NameServer {
     (proc {
       val respCh = OneOne[Boolean];
       // TODO: PORT!
-      putCh ! (("DummyEntry", InetAddress.getByName("localhost"), respCh))
-      println("Entered DummyEntry: " + (respCh?))
+      putCh ! (("DummyService", InetAddress.getByName("localhost"), respCh))
+      println("Entered DummyService: " + (respCh?))
     })();
 
     println("all started")
