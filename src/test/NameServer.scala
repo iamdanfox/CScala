@@ -28,6 +28,7 @@ object NameServer {
    * registry ensures no race conditions
    */
   private def registry() = {
+    // TODO: registry should store the port
     val hashmap = new scala.collection.mutable.HashMap[Name, InetAddress](); // should it also store timestamp of insertion?
     serve(
       putCh ==> {
@@ -46,18 +47,25 @@ object NameServer {
   
   private def handler(client: NetIO.Client[NameServerMsg, NameServerMsg]) = {
     proc("NameServer handler for "+client.socket){
-      // react appropriately to the type of message
+      // react appropriately to first message, then close
       client? match {
         case Register(name,addr,port) =>
-          
+          val respCh = OneOne[Boolean]
+          putCh!((name,addr,respCh))
+          client! (respCh? match {
+            case true => Success(name,addr,0)
+            case false => Failure(name)
+          })
         case Lookup(name) =>
           val respCh = OneOne[Option[InetAddress]]
-          val resp = getCh!(name,respCh)
-          respCh? match {
-            case Some(addr) => client!Success(name,addr,0) // TODO port
-            case None => client!Failure(name)
-          }
+          getCh!((name,respCh))
+          client! (respCh? match {
+            case Some(addr) => Success(name,addr,0) // TODO port
+            case None => Failure(name)
+          })
       }
+      // No serve loop
+      client.close
     }.fork
   }
 }
