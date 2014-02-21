@@ -19,14 +19,13 @@ object NSClient {
     var nameServer = NetIO.clientConnection[NameServerMsg, NameServerMsg]("localhost", 7700, false)
     nameServer ! Lookup("DummyEntry")
     println(nameServer?)
-
+    nameServer.close // NameServer currently only serves one request
+    
     // send broken lookup...    
-    nameServer = NetIO.clientConnection[NameServerMsg, NameServerMsg]("localhost", 7700, false)
-    nameServer ! Lookup("DoesntExist")
-    println(nameServer?)
+//    nameServer = NetIO.clientConnection[NameServerMsg, NameServerMsg]("localhost", 7700, false)
+//    nameServer ! Lookup("DoesntExist")
+//    println(nameServer?)
 
-    // Not quite terminating properly - need to kill a fork somehow...
-    println("Done")
   }
 
 }

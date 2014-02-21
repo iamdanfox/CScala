@@ -65,7 +65,10 @@ object NameServer {
           val respCh = OneOne[Boolean]
           putCh ! ((name, addr, respCh))
           client ! (respCh? match {
-            case true => Success(name, addr, 0)
+            case true => {
+              println("Added "+name+" to the registry")
+              Success(name, addr, 0)
+            }
             case false => Failure(name)
           })
         case Lookup(name) =>
