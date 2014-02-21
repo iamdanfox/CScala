@@ -15,22 +15,45 @@ import java.net._
  */
 object NameServer {
 
-  // publically accessible
+
   val port = 7700;
   type Name = String;
+  
+    // publically accessible for intra JVM communication
   val putCh = ManyOne[(Name, InetAddress, OneOne[Boolean])]
   val getCh = ManyOne[(Name, OneOne[Option[InetAddress]])]
   
-  private var registryThread = null.asInstanceOf[ox.cso.ThreadHandle]
+  private var registryThreadRunning = false
 
+  /**
+   * Ensures that a single registry process is running. NOOP if already running.
+   */
+  private def startRegistry(){
+    // if registry has already been forked, don't do anything.
+    if (!registryThreadRunning){
+      registry(putCh,getCh).fork
+      registryThreadRunning = true
+    }
+  }
+  
+  private var serverRunning = false;
+  
+  private def startServer(){
+    if (!serverRunning){
+        NetIO.serverPort(port, 0, false, handler).fork
+        serverRunning = true
+    }
+  }
+  
+  def start(){
+    startRegistry()
+    startServer()
+  }
+  
   def main(args: Array[String]) = {
     println("starting")
     
-    // if registry has already been forked, don't do anything.
-    if (registryThread==null || (registryThread!=null && registryThread.isTerminated)){
-      registryThread = registry().fork  
-    }
-    
+    start()
 
     // dummy insertion
     (proc {
@@ -40,27 +63,31 @@ object NameServer {
       println("Entered DummyEntry: " + (respCh?))
     })();
 
-    NetIO.serverPort(port, 0, false, handler).fork
     println("all started")
   }
 
   /**
-   * registry ensures no race conditions
+   * registry maintains a Name -> InetAddress, ensuring no race conditions
    */
-  private def registry() = {
-    // TODO: registry should store the port
+  private def registry(putCh: ManyOne[(Name, InetAddress, OneOne[Boolean])], 
+      getCh: ManyOne[(Name, OneOne[Option[InetAddress]])]) = proc {
+    println("registry started")
+    // TODO: registry should store the port, too
+    // TODO: should you be able to terminate the registry?
     val hashmap = new scala.collection.mutable.HashMap[Name, InetAddress](); // should it also store timestamp of insertion?
     serve(
       putCh ==> {
-        case (n, i, ch) =>
-          if (hashmap.contains(n)) ch ! false
+        case (n, i, rtn) =>
+          if (hashmap.contains(n)) 
+            rtn ! false
           else {
             hashmap.put(n, i)
-            ch ! true
+            rtn ! true
           }
       } | getCh ==> {
-        case (n, ch) => ch ! hashmap.get(n)
-      })
+        case (n, rtn) => rtn ! hashmap.get(n)
+      }
+    )
     putCh.close; getCh.close;
   }
 
