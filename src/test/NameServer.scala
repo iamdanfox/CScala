@@ -14,6 +14,8 @@ trait NameServer {
   def lookup(name: String): Option[(InetAddress, Int)]
   // TODO deregister?
 
+}
+
   trait Msg {}
 
   case class Register(name: String, address: InetAddress, port: Int) extends Msg
@@ -21,4 +23,3 @@ trait NameServer {
 
   case class Success(name: String, address: InetAddress, port: Int) extends Msg
   case class Failure(name: String) extends Msg
-}

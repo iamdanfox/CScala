@@ -7,11 +7,12 @@ import ox.cso.Components._
 import java.net._
 import test._
 
+
 object NSClient {
 
   // This client will attempt to look up the address of the 'DummyEntry' service
   def nameServerLookup(name : String) : Option[(InetAddress,Int)] = {
-    val nameServer = NetIO.clientConnection[NameServerMsg, NameServerMsg]("localhost", 7700, false) // TODO make this broadcast
+    val nameServer = NetIO.clientConnection[Msg, Msg]("localhost", 7700, false) // TODO make this broadcast
     val response = nameServer!?Lookup(name)
     nameServer.close  // NameServer currently only serves one request
     return (response match {
