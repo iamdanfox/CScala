@@ -17,6 +17,7 @@ object NameServer {
   val port = 7700;
   
   type Name = String;
+  
   val putCh = ManyOne[(Name,InetAddress,OneOne[Boolean])]
   val getCh = ManyOne[(Name, OneOne[Option[InetAddress]])]
   
@@ -28,7 +29,7 @@ object NameServer {
       val respCh = OneOne[Boolean];
       // TODO: PORT!
       putCh!(("DummyEntry",InetAddress.getByName("localhost"),respCh))
-      println("Succes: "+ (respCh?))
+      println("Entered DummyEntry: "+ (respCh?))
     })();
     
     NetIO.serverPort(port, 0, false, handler).fork

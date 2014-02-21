@@ -1,6 +1,6 @@
 package test
 import java.net._
-import test.NameServer._
+import test.NameServer.Name
 
 /**
  * A type for interacting with a NameServer (a network accessible mapping from names to procs)
