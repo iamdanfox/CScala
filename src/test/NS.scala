@@ -24,18 +24,22 @@ object NS {
   def apply(): NameServer = {
     if (!isRunning()) {
       try {
+          System.out.println("trying to connect to local JVM")
           val nameServer = NetIO.clientConnection[Msg, Msg]("localhost", 7700, false)
-          return nameServer
+          
+          return impl
       } catch {
         // no nameserver running on a local JVM
         case ce : java.net.ConnectException => {
+          println("starting a new local NameServer")
           // start a new one!
-          impl = new Impl()
+          impl = new LocalImpl()
           return impl
         }
       } 
     } else {
       // local nameserver is already running
+      println("Already running locally")
       impl
     }
   }
@@ -44,7 +48,33 @@ object NS {
   //    val ns = NS();
   //  }
 
-  class Impl extends NameServer {
+  /**
+   * Wrapper class that provides a unified interface to a non-local NameServer
+   */
+  class OtherJVM(conn: ox.cso.NetIO.Server[Msg,Msg]) extends NameServer {
+    
+    def register(name: String, address: InetAddress, port: Int): Boolean = {
+      conn!Register(name, address, port)
+      val resp:Msg = (conn?)
+      conn.close
+      resp match {
+        case Success(n,a,p) => return true
+        case Failure(n) => return false
+      }
+    }
+    
+    def lookup(name: String): Option[(InetAddress, Int)] = {
+      conn!Lookup(name)
+      val resp:Msg = (conn?) 
+      conn.close
+      resp match {
+        case Success(n,a,p) => return Some(a,p)
+        case Failure(n) => return None
+      }
+    }
+  }
+  
+  class LocalImpl extends NameServer {
 
     private val hashmap = new scala.collection.mutable.HashMap[String, (InetAddress, Int)]();
     private val putCh = ManyOne[(String, InetAddress, Int, OneOne[Boolean])]
