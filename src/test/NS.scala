@@ -21,25 +21,29 @@ object NS {
   def isRunning(): Boolean = this.impl!=null
   
   // returns a nameserver. constructs a local one if necessary
+  /**
+   * Returns a NameServer.  Finds one on a local JVM, finds one on this JVM or starts a new one.
+   */
   def apply(): NameServer = {
     if (!isRunning()) {
       try {
-          System.out.println("trying to connect to local JVM")
+          System.out.println("NS() trying to connect to local JVM")
           val nameServer = NetIO.clientConnection[Msg, Msg]("localhost", 7700, false)
-          
+          // wrap the foreign JVM
+          impl = new ForeignNSWrapper(nameServer)
           return impl
       } catch {
         // no nameserver running on a local JVM
         case ce : java.net.ConnectException => {
-          println("starting a new local NameServer")
+          println("NS() starting a new local NameServer")
           // start a new one!
-          impl = new LocalImpl()
+          impl = new LocalNS()
           return impl
         }
       } 
     } else {
       // local nameserver is already running
-      println("Already running locally")
+      println("NS() Already running locally")
       impl
     }
   }
@@ -51,7 +55,7 @@ object NS {
   /**
    * Wrapper class that provides a unified interface to a non-local NameServer
    */
-  class OtherJVM(conn: ox.cso.NetIO.Server[Msg,Msg]) extends NameServer {
+  class ForeignNSWrapper(conn: ox.cso.NetIO.Server[Msg,Msg]) extends NameServer {
     
     def register(name: String, address: InetAddress, port: Int): Boolean = {
       conn!Register(name, address, port)
@@ -74,11 +78,13 @@ object NS {
     }
   }
   
-  class LocalImpl extends NameServer {
+  /**
+   * Stores a mapping from String names -> (InetAddress, Int). 
+   * Exposed internally through `register` and `lookup` methods and over the network on NameServer.port (7700)
+   */
+  class LocalNS extends NameServer {
 
     private val hashmap = new scala.collection.mutable.HashMap[String, (InetAddress, Int)]();
-    private val putCh = ManyOne[(String, InetAddress, Int, OneOne[Boolean])]
-    private val getCh = ManyOne[(String, OneOne[Option[(InetAddress,Int)]])]
 
     // Constructor: spawns hashmap guard proc and server
     registry().fork
@@ -102,11 +108,14 @@ object NS {
       return rtnCh?
     }
 
+    private val putCh = ManyOne[(String, InetAddress, Int, OneOne[Boolean])]
+    private val getCh = ManyOne[(String, OneOne[Option[(InetAddress,Int)]])]
+    
     /**
      * Registry maintains (Name -> (InetAddress,Int)), ensuring no race conditions
      */
-    private def registry() = proc {
-      println("registry started")
+    private def registry() = proc { // started when class is constructed
+      println("LocalNS: starting a registry")
       serve(
         putCh ==> {
           case (name, addr, port, rtn) =>
@@ -125,7 +134,7 @@ object NS {
     /**
      * Handle each new client that requests.
      */
-    private def handler(client: NetIO.Client[Msg, Msg]) = {
+    private def handler(client: NetIO.Client[Msg, Msg]) = { // passed into NetIO.serverPort
       proc("NameServer handler for " + client.socket) {
         // react appropriately to first message, then close
         client? match {
