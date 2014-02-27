@@ -6,7 +6,7 @@ import ox.cso.SyncNetIO
 import ox.cso.Components._
 import scala.collection.mutable.HashMap
 import java.net._
-
+import java.net.ConnectException
 
 /**
  * Listen
@@ -20,8 +20,25 @@ object NS {
 
   def isRunning(): Boolean = this.impl!=null
   
-  // construct if necessary, otherwise just return the singleton
-  def apply(): NameServer = if (!isRunning()) { impl = new Impl(); impl } else impl
+  // returns a nameserver. constructs a local one if necessary
+  def apply(): NameServer = {
+    if (!isRunning()) {
+      try {
+          val nameServer = NetIO.clientConnection[Msg, Msg]("localhost", 7700, false)
+          return nameServer
+      } catch {
+        // no nameserver running on a local JVM
+        case ce : java.net.ConnectException => {
+          // start a new one!
+          impl = new Impl()
+          return impl
+        }
+      } 
+    } else {
+      // local nameserver is already running
+      impl
+    }
+  }
 
   //  def main(args: Array[String]) = {
   //    val ns = NS();

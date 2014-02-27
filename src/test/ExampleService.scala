@@ -8,7 +8,7 @@ import java.net._
 import test._
 
 /**
- * Attempts to register itself with the nameserver.
+ * Attempts to register itself with the nameserver over the internet.
  */
 object ExampleService {
   
