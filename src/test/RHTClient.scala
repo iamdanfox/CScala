@@ -19,16 +19,20 @@ object RHTClient {
 
   def main(args: Array[String]): Unit =
     {
-
+          // DESIRED: get me the RHT server, returns bi channel.
       val server = NetIO.clientConnection[RHTReq, RHTRep](host, port, sync)
 
       val fromKbd = OneOne[String]
-
       keyboard(fromKbd).fork
       
       Thread.sleep(200) // makes the client terminal come up in Eclipse
-      println("Client started. Try 'foo baz' to assign foo to baz")
 
+      // identify client to the server
+      println("Type a name to identify yourself")
+      val name:String = fromKbd?;
+      server!Identify(name)
+      
+      println("Client started. Try 'foo baz' to assign foo to baz")
       serve(
         // listen to input from the keyboard
         fromKbd ==> {

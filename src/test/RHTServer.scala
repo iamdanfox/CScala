@@ -4,6 +4,7 @@ import ox.cso.Connection
 import ox.cso.NetIO
 import ox.cso.SyncNetIO
 import ox.cso.Components._
+import scala.collection.mutable.HashMap
 
 /**
  * Remote hash-table client and server
@@ -18,7 +19,8 @@ object RHTServer {
 
   def main(args: Array[String]) =
     {
-      val table = new scala.collection.mutable.HashMap[String, Value]
+      // potential race condition here
+      val store = new HashMap[String, HashMap[String,Value]]  // store :: client -> key -> value
       
       // bind a handler function to the port with specified backlog
       NetIO.serverPort(port, 0, false, handleclient).fork
@@ -30,8 +32,23 @@ object RHTServer {
         Console.println(client.socket)
         proc("Serving: %s".format(client.socket)) {
           val start = time
+          
+          // identify client and create private store
+          val clientName = (client?).asInstanceOf[Identify].name;
+          val table = store.get(clientName) match {
+            case Some(t) =>  t 
+            case None => 
+              val t = new HashMap[String, Value];
+              store.put(clientName, t);
+              t 
+          }
+          
           // respond to client Requests or timeout
           serve(client ==> {
+            case Identify(n) => {
+              // client is re-identifying.
+              client ! Nack;
+            }
             case Set(k, v) => {
               table.update(k, Value(v, start))
               client ! Tack(start)
@@ -63,13 +80,16 @@ object RHTServer {
     }
 }
 
-trait RHTReq {}
 trait RHTRep {}
 case object Ack extends RHTRep {}
 case object Nack extends RHTRep {}
 case class Tack(time: Long) extends RHTRep {}
 case class Value(value: String, time: Long) extends RHTRep {}
 case object Close extends RHTRep {}
+
+
+trait RHTReq {}
+case class Identify(name : String) extends RHTReq {}
 case class Set(key: String, value: String) extends RHTReq {}
 case class Get(key: String) extends RHTReq {}
 case class Del(key: String) extends RHTReq {}
