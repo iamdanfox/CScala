@@ -68,6 +68,7 @@ object NS {
     }
     
     def lookup(name: String): Option[(InetAddress, Int)] = {
+      if (!conn.isOpen()) println("conn not open")
       conn!Lookup(name)
       val resp:Msg = (conn?) 
       conn.close
@@ -85,6 +86,8 @@ object NS {
   class LocalNS extends NameServer {
 
     private val hashmap = new scala.collection.mutable.HashMap[String, (InetAddress, Int)]();
+    private val putCh = ManyOne[(String, InetAddress, Int, OneOne[Boolean])]
+    private val getCh = ManyOne[(String, OneOne[Option[(InetAddress,Int)]])]
 
     // Constructor: spawns hashmap guard proc and server
     registry().fork
@@ -107,9 +110,6 @@ object NS {
       getCh!((name,rtnCh))
       return rtnCh?
     }
-
-    private val putCh = ManyOne[(String, InetAddress, Int, OneOne[Boolean])]
-    private val getCh = ManyOne[(String, OneOne[Option[(InetAddress,Int)]])]
     
     /**
      * Registry maintains (Name -> (InetAddress,Int)), ensuring no race conditions
