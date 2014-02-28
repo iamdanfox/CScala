@@ -34,8 +34,8 @@ object NS {
         return impl
       case None =>
         println("NS() starting a new local NameServer")
-        // start a new one!
-        impl = new LocalNS()
+        // start a new one, serving properly
+        impl = new ServeLocalNS()
         return impl
     }
   }

@@ -16,19 +16,18 @@ import java.net.InetAddress
 class LocalNS extends NameServer {
 
   private val hashmap = new scala.collection.mutable.HashMap[String, (InetAddress, Int)]();
-  private val putCh = ManyOne[(String, InetAddress, Int, OneOne[Boolean])]
-  private val getCh = ManyOne[(String, OneOne[Option[(InetAddress, Int)]])]
+  protected val toRegistry = ManyOne[(String, InetAddress, Int, OneOne[Boolean])]
+  protected val fromRegistry = ManyOne[(String, OneOne[Option[(InetAddress, Int)]])]
 
-  // Constructor: spawns hashmap guard proc and server
+  // Constructor: spawns hashmap guard proc
   registry().fork
-  NetIO.serverPort(port, 0, false, handler).fork
 
   /**
    * Add a new mapping from String -> (InetAddress, Port)
    */
   def register(name: String, address: InetAddress, port: Int): Boolean = {
     val rtnCh = OneOne[Boolean]
-    putCh ! ((name, address, port, rtnCh))
+    toRegistry ! ((name, address, port, rtnCh))
     return rtnCh?
   }
 
@@ -37,7 +36,7 @@ class LocalNS extends NameServer {
    */
   def lookup(name: String): Option[(InetAddress, Int)] = {
     val rtnCh = OneOne[Option[(InetAddress, Int)]]
-    getCh ! ((name, rtnCh))
+    fromRegistry ! ((name, rtnCh))
     return rtnCh?
   }
 
@@ -47,7 +46,7 @@ class LocalNS extends NameServer {
   private def registry() = proc { // started when class is constructed
     println("LocalNS: starting a registry")
     serve(
-      putCh ==> {
+      toRegistry ==> {
         case (name, addr, port, rtn) =>
           if (hashmap.contains(name))
             rtn ! false
@@ -55,39 +54,10 @@ class LocalNS extends NameServer {
             hashmap.put(name, (addr, port))
             rtn ! true
           }
-      } | getCh ==> {
+      } | fromRegistry ==> {
         case (n, rtn) => rtn ! hashmap.get(n)
       })
-    putCh.close; getCh.close;
-  }
-
-  /**
-   * Handle each new client that requests.
-   */
-  private def handler(client: NetIO.Client[Msg, Msg]) = { // passed into NetIO.serverPort
-    proc("NameServer handler for " + client.socket) {
-      // react appropriately to first message, then close
-      client? match {
-        case Register(name, addr, port) =>
-          val respCh = OneOne[Boolean]
-          putCh ! ((name, addr, port, respCh))
-          client ! (respCh? match {
-            case true => {
-              println("Added " + name + " to the registry")
-              Success(name, addr, 0)
-            }
-            case false => Failure(name)
-          })
-        case Lookup(name) =>
-          val respCh = OneOne[Option[(InetAddress, Int)]]
-          getCh ! ((name, respCh))
-          client ! (respCh? match {
-            case Some((addr, port)) => Success(name, addr, port)
-            case None => Failure(name)
-          })
-      }
-      // No serve loop
-      client.close
-    }.fork // TODO: why bother forking?
+    // TODO: when would this serve loop even terminate?
+    toRegistry.close; fromRegistry.close;
   }
 }
