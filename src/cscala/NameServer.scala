@@ -3,12 +3,14 @@ package cscala
 import java.net.InetAddress
 
 trait NameServer {
-  val port = 7700;
-
   def register(name: String, address: InetAddress, port: Int): Boolean
   def lookup(name: String): Option[(InetAddress, Int)]
   // TODO deregister?
 
+}
+
+object NameServer {
+  val port = 7700
 }
 
 trait Msg {}
