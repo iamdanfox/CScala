@@ -1,10 +1,13 @@
-package cscala
-import ox.CSO._
-import ox.cso.Connection
+package demo
+
+import scala.collection.mutable.HashMap
+
+import ox.CSO.after
+import ox.CSO.proc
+import ox.CSO.serve
+import ox.CSO.stop
 import ox.cso.NetIO
 import ox.cso.SyncNetIO
-import ox.cso.Components._
-import scala.collection.mutable.HashMap
 
 /**
  * Remote hash-table client and server

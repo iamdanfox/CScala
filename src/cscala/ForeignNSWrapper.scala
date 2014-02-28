@@ -18,7 +18,7 @@ class ForeignNSWrapper(conn: ox.cso.NetIO.Server[Msg, Msg]) extends NameServer {
   }
 
   def lookup(name: String): Option[(InetAddress, Int)] = {
-    if (!conn.isOpen()) println("conn not open")
+    if (!conn.isOpen()) println("conn not open") // TODO this isn't firing
     conn ! Lookup(name)
     val resp: Msg = (conn?)
     conn.close

@@ -1,4 +1,6 @@
-package cscala
+package demo
+
+import cscala.NS
 
 /**
  * Attempts to register itself with the nameserver over the internet.

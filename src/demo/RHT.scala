@@ -1,9 +1,14 @@
-package cscala
-import ox.CSO._
-import ox.cso.Connection
+package demo
+
+import ox.CSO.EventToAlt
+import ox.CSO.OneOne
+import ox.CSO.after
+import ox.CSO.proc
+import ox.CSO.serve
+import ox.CSO.stop
+import ox.cso.Components.keyboard
 import ox.cso.NetIO
 import ox.cso.SyncNetIO
-import ox.cso.Components._
 
 /**
         Remote hash-table client and server
@@ -127,9 +132,6 @@ object RHT
     }
   }
 }
-
-//trait RHTReq {}
-//trait RHTRep {}
 //case  object Ack                              extends RHTRep {}
 //case  object Nack                             extends RHTRep {}
 //case  class  Tack(time: Long)                 extends RHTRep {}
