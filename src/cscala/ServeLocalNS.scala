@@ -8,7 +8,7 @@ import ox.cso.NetIO
 
 class ServeLocalNS extends LocalNS {
 
-  NetIO.serverPort(port, 0, false, handleClient).fork
+  NetIO.serverPort(NameServer.port, 0, false, handleClient).fork
 
   /**
    * Handle each new client that requests.
@@ -36,7 +36,7 @@ class ServeLocalNS extends LocalNS {
           })
       }
       // No serve loop
-      client.close
+      client.close // TODO: should we really kill off the client after just one request?
     }.fork // TODO: why bother forking?
   }
 }

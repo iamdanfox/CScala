@@ -24,8 +24,7 @@ object NS {
       case Some(foreignNS) =>
         System.out.println("NS() trying to connect to local JVM")
         // wrap the foreign server object with `register`, `lookup` methods
-        impl = new ForeignNSWrapper(foreignNS)
-        return impl
+        return new ForeignNSWrapper(foreignNS)
       case None =>
         println("NS() starting a new local NameServer")
         // start a new one, serving properly
@@ -36,7 +35,7 @@ object NS {
 
   private def findForeignNS(): Option[ox.cso.NetIO.Server[Msg, Msg]] = {
     try {
-      return Some(NetIO.clientConnection[Msg, Msg]("localhost", 7700, false))
+      return Some(NetIO.clientConnection[Msg, Msg]("localhost", NameServer.port, false))
     } catch {
       // couldn't connect to localhost:7700, 
       case ce: java.net.ConnectException => return None
