@@ -1,4 +1,4 @@
-package test
+package cscala
 import ox.CSO._
 import ox.cso.Connection
 import ox.cso.NetIO

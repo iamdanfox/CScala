@@ -1,4 +1,4 @@
-package test
+package cscala
 import ox.CSO._
 
 
