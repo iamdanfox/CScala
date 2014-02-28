@@ -5,7 +5,6 @@ import ox.cso.NetIO
 import ox.cso.SyncNetIO
 import ox.cso.Components._
 import java.net._
-import test._
 
 
 object NSClient {
