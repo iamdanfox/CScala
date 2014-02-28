@@ -1,10 +1,4 @@
 package cscala
-import ox.CSO._
-import ox.cso.Connection
-import ox.cso.NetIO
-import ox.cso.SyncNetIO
-import ox.cso.Components._
-import java.net._
 
 /**
  * Attempts to register itself with the nameserver over the internet.

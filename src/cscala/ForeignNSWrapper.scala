@@ -1,12 +1,6 @@
 package cscala
-import ox.CSO._
-import ox.cso.Connection
-import ox.cso.NetIO
-import ox.cso.SyncNetIO
-import ox.cso.Components._
-import scala.collection.mutable.HashMap
-import java.net._
-import java.net.ConnectException
+
+import java.net.InetAddress
 
 /**
  * Wrapper class that provides a unified interface to a non-local NameServer

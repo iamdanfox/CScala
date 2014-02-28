@@ -1,13 +1,11 @@
 package cscala
-import ox.CSO._
-import ox.cso.Connection
-import ox.cso.NetIO
-import ox.cso.SyncNetIO
-import ox.cso.Components._
-import scala.collection.mutable.HashMap
-import java.net._
-import java.net.ConnectException
+
 import java.net.InetAddress
+
+import ox.CSO.ManyOne
+import ox.CSO.OneOne
+import ox.CSO.proc
+import ox.CSO.serve
 
 /**
  * Stores a mapping from String names -> (InetAddress, Int).
