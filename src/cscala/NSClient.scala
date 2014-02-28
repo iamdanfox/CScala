@@ -1,11 +1,6 @@
-package test
-import ox.CSO._
-import ox.cso.Connection
-import ox.cso.NetIO
-import ox.cso.SyncNetIO
-import ox.cso.Components._
-import java.net._
-import test._
+package cscala
+
+import java.net.InetAddress
 
 
 object NSClient {
