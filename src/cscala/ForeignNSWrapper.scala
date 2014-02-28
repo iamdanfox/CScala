@@ -1,0 +1,36 @@
+package cscala
+import ox.CSO._
+import ox.cso.Connection
+import ox.cso.NetIO
+import ox.cso.SyncNetIO
+import ox.cso.Components._
+import scala.collection.mutable.HashMap
+import java.net._
+import java.net.ConnectException
+
+/**
+ * Wrapper class that provides a unified interface to a non-local NameServer
+ */
+class ForeignNSWrapper(conn: ox.cso.NetIO.Server[Msg, Msg]) extends NameServer {
+
+  def register(name: String, address: InetAddress, port: Int): Boolean = {
+    conn ! Register(name, address, port)
+    val resp: Msg = (conn?)
+    conn.close
+    resp match {
+      case Success(n, a, p) => return true
+      case Failure(n) => return false
+    }
+  }
+
+  def lookup(name: String): Option[(InetAddress, Int)] = {
+    if (!conn.isOpen()) println("conn not open")
+    conn ! Lookup(name)
+    val resp: Msg = (conn?)
+    conn.close
+    resp match {
+      case Success(n, a, p) => return Some(a, p)
+      case Failure(n) => return None
+    }
+  }
+}
