@@ -5,16 +5,23 @@ import java.net.InetAddress
 import ox.CSO.ManyOne
 import ox.CSO.OneOne
 import ox.CSO.proc
-import ox.CSO.serve
+import ox.CSO._
 
 /**
- * Stores a mapping from String names -> (InetAddress, Int).
+ * Stores a mapping from String names -> (InetAddress, Int). 
+ * Doesn't allow duplicate records for one name
  * Exposed internally through `register` and `lookup` methods and over the network on NameServer.port (7700)
  */
 class LocalNS extends NameServer {
 
-  private val hashmap = new scala.collection.mutable.HashMap[String, (InetAddress, Int)]();
-  protected val toRegistry = ManyOne[(String, InetAddress, Int, OneOne[Boolean])]
+  type Record = (InetAddress, Int)
+  
+  private val hashmap = new scala.collection.mutable.HashMap[String, Record]();
+    
+  // `expires` stores timeOfExpiry -> stringname mappings
+  private var expires = new scala.collection.immutable.TreeMap[Long,String]() // TODO: should be a set.
+  
+  protected val toRegistry = ManyOne[(String, InetAddress, Int, Long, OneOne[Boolean])]
   protected val fromRegistry = ManyOne[(String, OneOne[Option[(InetAddress, Int)]])]
 
   // Constructor: spawns hashmap guard proc
@@ -24,8 +31,12 @@ class LocalNS extends NameServer {
    * Add a new mapping from String -> (InetAddress, Port)
    */
   def registerForeign(name: String, address: InetAddress, port: Int): Boolean = {
+    registerForeign(name,address,port,NameServer.DEFAULT_TTL)
+  }
+  
+  def registerForeign(name: String, address: InetAddress, port: Int, ttl: Long): Boolean = {
     val rtnCh = OneOne[Boolean]
-    toRegistry ! ((name, address, port, rtnCh))
+    toRegistry ! ((name, address, port, ttl, rtnCh))
     return rtnCh?
   }
 
@@ -45,8 +56,8 @@ class LocalNS extends NameServer {
     println("LocalNS: starting a registry")
     serve(
       toRegistry ==> {
-        case (name, addr, port, rtn) =>
-          if (hashmap.contains(name))
+        case (name, addr, port, ttl, rtn) =>
+          if (hashmap.get(name) == Some((addr,port))) // no updates
             rtn ! false
           else {
             hashmap.put(name, (addr, port))
@@ -57,5 +68,23 @@ class LocalNS extends NameServer {
       })
     // TODO: when would this serve loop even terminate?
     toRegistry.close; fromRegistry.close;
+  }
+  
+  val REAPER_INTERVAL = 1000*3; // every 3 seconds
+
+  /**
+   * Every 3 seconds, this scans the `expires` list and deletes any expired records from the NameServer
+   */
+  private def reaper(stopCh: ?[Unit]) = proc {
+    serve(
+        stopCh ==> { _ => ox.CSO.Stop }
+      | after(REAPER_INTERVAL) --> { 
+        val now = System.currentTimeMillis()
+        val (overdue, stillAlive) = expires.partition(_._1 < now)
+        overdue.foreach(t => hashmap.remove(t._2))
+        expires = stillAlive
+      }
+    )
+    stopCh.closein
   }
 }
