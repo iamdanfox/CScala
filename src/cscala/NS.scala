@@ -13,10 +13,10 @@ object NS {
 
   private var impl: NameServer = null
 
-  def isRunning(): Boolean = this.impl != null
+  def localRunning(): Boolean = this.impl != null
 
   def apply(): NameServer = { // TODO is this threadsafe?
-    if (isRunning()) {
+    if (localRunning()) {
       // local nameserver is already running
       println("NS() Already running locally")
       return impl
