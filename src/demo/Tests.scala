@@ -26,7 +26,7 @@ object Tests {
   }
   
   private def registerForeign() ={
-    println("3: "+ wrap(NS().registerForeign("Test", InetAddress.getLocalHost(), 100)) )
+    println("3: "+ wrap(NS().registerForeign("Test", InetAddress.getLocalHost(), 100, NameServer.DEFAULT_TTL)) )
   }
   
   private def lookupForeign() = {

@@ -4,12 +4,9 @@ import java.net.InetAddress
 
 trait NameServer {
   /**
-   * For registering a service that is network accessible. Used NameServer.DEFAULT_TTL
+   * For registering a service that is network accessible. Use NameServer.DEFAULT_TTL if necessary
    */
-  def registerForeign(name: String, address: InetAddress, port: Int): Boolean
-
   def registerForeign(name: String, address: InetAddress, port: Int, ttl: Long): Boolean
-  
   
   /**
    * For registering services that are only locally accessible
@@ -32,7 +29,7 @@ object NameServer {
 
 trait Msg {}
 
-case class Register(name: String, address: InetAddress, port: Int) extends Msg
+case class Register(name: String, address: InetAddress, port: Int, ttl: Long) extends Msg
 case class Lookup(name: String) extends Msg
 
 case class Success(name: String, address: InetAddress, port: Int) extends Msg

@@ -4,7 +4,7 @@ import ox.CSO.OneOne
 import ox.CSO.proc
 import ox.cso.NetIO
 
-import cscala.NS
+import cscala._
 import java.net.InetAddress
 
 /**
@@ -30,7 +30,7 @@ object EchoService {
     startEchoService()
 
     // register with nameserver
-    NS().registerForeign("EchoService", InetAddress.getByName("localhost"), this.port)
+    NS().registerForeign("EchoService", InetAddress.getByName("localhost"), this.port, NameServer.DEFAULT_TTL)
 
     // pretend to be a client.
     NS().lookupForeign("EchoService") match {

@@ -17,13 +17,13 @@ class ServeLocalNS extends LocalNS {
     proc("NameServer handler for " + client.socket) {
       // react appropriately to first message, then close
       client? match {
-        case Register(name, addr, port) =>
+        case Register(name, addr, port, ttl) =>
           val respCh = OneOne[Boolean]
-          toRegistry ! ((name, addr, port, respCh))
+          toRegistry ! ((name, addr, port, ttl, respCh))
           client ! (respCh? match {
             case true => {
               println("Added " + name + " to the registry")
-              Success(name, addr, 0)
+              Success(name, addr, port)
             }
             case false => Failure(name)
           })

@@ -30,10 +30,6 @@ class LocalNS extends NameServer {
   /**
    * Add a new mapping from String -> (InetAddress, Port)
    */
-  def registerForeign(name: String, address: InetAddress, port: Int): Boolean = {
-    registerForeign(name,address,port,NameServer.DEFAULT_TTL)
-  }
-  
   def registerForeign(name: String, address: InetAddress, port: Int, ttl: Long): Boolean = {
     val rtnCh = OneOne[Boolean]
     toRegistry ! ((name, address, port, ttl, rtnCh))

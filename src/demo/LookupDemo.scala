@@ -1,6 +1,6 @@
 package demo
 
-import cscala.NS
+import cscala._
 import java.net.InetAddress
 
 /**
@@ -18,7 +18,7 @@ object LookupDemo {
     val ns = NS()
 
     println(ns.lookupForeign("Demo")) // will print "None" on the first attempt
-    ns.registerForeign("Demo", InetAddress.getByName("localhost"), 3301)
+    ns.registerForeign("Demo", InetAddress.getByName("localhost"), 3301, NameServer.DEFAULT_TTL)
     println(ns.lookupForeign("Demo")) // will print "Some((localhost/127.0.0.1,3301))" on the first attempt
 
   }
