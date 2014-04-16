@@ -23,7 +23,7 @@ class LocalNS extends NameServer {
   /**
    * Add a new mapping from String -> (InetAddress, Port)
    */
-  def register(name: String, address: InetAddress, port: Int): Boolean = {
+  def registerForeign(name: String, address: InetAddress, port: Int): Boolean = {
     val rtnCh = OneOne[Boolean]
     toRegistry ! ((name, address, port, rtnCh))
     return rtnCh?
@@ -32,7 +32,7 @@ class LocalNS extends NameServer {
   /**
    * Looks up the name in the registry
    */
-  def lookup(name: String): Option[(InetAddress, Int)] = {
+  def lookupForeign(name: String): Option[(InetAddress, Int)] = {
     val rtnCh = OneOne[Option[(InetAddress, Int)]]
     fromRegistry ! ((name, rtnCh))
     return rtnCh?

@@ -3,10 +3,23 @@ package cscala
 import java.net.InetAddress
 
 trait NameServer {
-  def register(name: String, address: InetAddress, port: Int): Boolean
-  def lookup(name: String): Option[(InetAddress, Int)]
-  // TODO deregister?
+  /**
+   * For registering a service that is network accessible.
+   */
+  def registerForeign(name: String, address: InetAddress, port: Int): Boolean
 
+  /**
+   * For registering services that are only locally accessible
+   */
+  //  def registerLocal[Req <: Serial, Rep <: Serial](name: String, handle: Client[Req, Rep] => Unit):Boolean
+
+  /**
+   * Lookup a network accessible service.  Returns the address and port.  Calling code is responsible 
+   * for making the connection & handling errors if necessary.
+   */
+  def lookupForeign(name: String): Option[(InetAddress, Int)]
+
+  // TODO deregister?
 }
 
 object NameServer {

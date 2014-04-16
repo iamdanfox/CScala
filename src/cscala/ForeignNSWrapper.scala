@@ -7,7 +7,7 @@ import java.net.InetAddress
  */
 class ForeignNSWrapper(conn: ox.cso.NetIO.Server[Msg, Msg]) extends NameServer {
 
-  def register(name: String, address: InetAddress, port: Int): Boolean = {
+  def registerForeign(name: String, address: InetAddress, port: Int): Boolean = {
     conn ! Register(name, address, port)
     val resp: Msg = (conn?)
     conn.close
@@ -17,7 +17,7 @@ class ForeignNSWrapper(conn: ox.cso.NetIO.Server[Msg, Msg]) extends NameServer {
     }
   }
 
-  def lookup(name: String): Option[(InetAddress, Int)] = {
+  def lookupForeign(name: String): Option[(InetAddress, Int)] = {
     if (!conn.isOpen()) println("conn not open") // TODO this isn't firing
     conn ! Lookup(name)
     val resp: Msg = (conn?)

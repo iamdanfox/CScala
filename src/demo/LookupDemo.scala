@@ -17,9 +17,9 @@ object LookupDemo {
 
     val ns = NS()
 
-    println(ns.lookup("Demo")) // will print "None" on the first attempt
-    ns.register("Demo", InetAddress.getByName("localhost"), 3301)
-    println(ns.lookup("Demo")) // will print "Some((localhost/127.0.0.1,3301))" on the first attempt
+    println(ns.lookupForeign("Demo")) // will print "None" on the first attempt
+    ns.registerForeign("Demo", InetAddress.getByName("localhost"), 3301)
+    println(ns.lookupForeign("Demo")) // will print "Some((localhost/127.0.0.1,3301))" on the first attempt
 
   }
 

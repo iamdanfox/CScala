@@ -30,10 +30,10 @@ object EchoService {
     startEchoService()
 
     // register with nameserver
-    NS().register("EchoService", InetAddress.getByName("localhost"), this.port)
+    NS().registerForeign("EchoService", InetAddress.getByName("localhost"), this.port)
 
     // pretend to be a client.
-    NS().lookup("EchoService") match {
+    NS().lookupForeign("EchoService") match {
       case Some((addr, p)) => {
         // foreign server
         val server = NetIO.clientConnection[String, String](addr, p, false)
