@@ -18,15 +18,15 @@ object NS {
   def apply(): NameServer = { // TODO is this threadsafe?
     if (localRunning()) {
       // local nameserver is already running
-      println("NS() Already running locally")
+      //println("NS() Already running locally")
       return impl
     } else findForeignNS() match {
       case Some(foreignNS) =>
-        System.out.println("NS() trying to connect to local JVM")
+        //System.out.println("NS() trying to connect to local JVM")
         // wrap the foreign server object with `register`, `lookup` methods
         return new ForeignNSWrapper(foreignNS)
       case None =>
-        println("NS() starting a new local NameServer")
+        //println("NS() starting a new local NameServer")
         // start a new one, serving properly
         impl = new ServeLocalNS()
         return impl

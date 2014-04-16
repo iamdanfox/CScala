@@ -1,6 +1,7 @@
 package demo
 
 import cscala._
+import java.net._
 
 object Tests {
 
@@ -9,15 +10,29 @@ object Tests {
    */
   def main(args: Array[String]): Unit = {
     
-    println("test1: "+ (if (!NS.localRunning()) "pass" else "fail"))
+    instantiation()
+    registerForeign()
+    lookupForeign()
+  }
+  
+  private def instantiation() = {
+    println("1: "+ wrap(!NS.localRunning()) )
     // expecting: NS() starting a new local NameServer
+    print("    ")
     NS() 
-    println("test2: "+ (if (NS.localRunning()) "pass" else "fail"))
+    println("2: "+ wrap(NS.localRunning()) )
     // expecting: NS() Already running locally
     NS()
-    
-    
-    
+  }
+  
+  private def registerForeign() ={
+    println("3: "+ wrap(NS().registerForeign("Test", InetAddress.getLocalHost(), 100)) )
+  }
+  
+  private def lookupForeign() = {
+    println("4: "+ wrap(NS().lookupForeign("Test")==Some((InetAddress.getLocalHost(),100))) )
+    println("5: "+ wrap(NS().lookupForeign("NonExistent")==None))
   }
 
+  def wrap(b:Boolean) : String =  if (b) "pass" else "fail"
 }
