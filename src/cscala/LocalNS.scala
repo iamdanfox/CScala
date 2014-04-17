@@ -14,15 +14,13 @@ import ox.CSO._
  */
 class LocalNS extends NameServer {
 
-  // IP Address, Port, TTL
+  // IP Address, Port, ExpiryTime (milliseconds)
   type Record = (InetAddress, Int, Long)
-
-  case class Rcrd(addr: InetAddress, port: Int, ttl:Long)
   
   private val hashmap = new scala.collection.mutable.HashMap[String, Record]();
   
-  protected val toRegistry = ManyOne[(String, InetAddress, Int, Long, OneOne[Boolean])]
-  protected val fromRegistry = ManyOne[(String, OneOne[Option[(InetAddress, Int, Long)]])]
+  protected val toRegistry = ManyOne[(String, InetAddress, Int, Long, OneOne[Boolean])] // used to make new entries
+  protected val fromRegistry = ManyOne[(String, OneOne[Option[Record]])] // used to do lookups
 
   // Constructor: spawns hashmap guard proc
   registry().fork
@@ -44,7 +42,7 @@ class LocalNS extends NameServer {
    * Looks up the name in the registry
    */
   override def lookupForeign(name: String): Option[(InetAddress, Int)] = {
-    val rtnCh = OneOne[Option[(InetAddress, Int, Long)]]
+    val rtnCh = OneOne[Option[Record]]
     fromRegistry ! ((name, rtnCh))
     return rtnCh? match {
       case Some((a,p,t)) => Some (a,p) // slightly less data returned
@@ -60,12 +58,9 @@ class LocalNS extends NameServer {
     serve(
       toRegistry ==> {
         case (name, addr, port, ttl, rtn) =>
-          if (hashmap.get(name) == Some((addr,port,ttl)) ) // TODO no updates
-            rtn ! false
-          else {
-            hashmap.put(name, (addr, port, ttl))
+            val expiryTime = System.currentTimeMillis() + ttl
+            hashmap.put(name, (addr, port, expiryTime)) // important: hashmap doesn't store TTL!!
             rtn ! true
-          }
       } | fromRegistry ==> {
         case (n, rtn) => rtn ! hashmap.get(n)
       })
@@ -83,7 +78,7 @@ class LocalNS extends NameServer {
         stopCh ==> { _ => ox.CSO.Stop }
       | after(REAPER_INTERVAL) --> { 
         val now = System.currentTimeMillis()
-        print("reaping "+now+" :")
+        print("reaping "+now+" :"+hashmap.size+" -> ")
         hashmap.filter(t => t._2._3 < now).foreach(t => hashmap.remove(t._1));
         println(hashmap.size)
       }

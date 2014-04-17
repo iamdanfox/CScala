@@ -13,6 +13,8 @@ object Tests {
     instantiation()
     registerForeign()
     lookupForeign()
+    
+    // TODO test ttl is forcing records to expire correctly
   }
   
   private def instantiation() = {

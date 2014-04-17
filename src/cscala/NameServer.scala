@@ -24,7 +24,7 @@ trait NameServer {
 
 object NameServer {
   val port = 7700
-  val DEFAULT_TTL = 60*10 // 10 minutes
+  val DEFAULT_TTL:Long = 1000*60*10 // 10 minutes
 }
 
 trait Msg {}
