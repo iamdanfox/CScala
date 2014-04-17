@@ -1,6 +1,10 @@
 package cscala
 
 import java.net.InetAddress
+import ox.cso.NetIO.Server
+import ox.cso.NetIO._
+import ox.cso._
+
 
 trait NameServer {
   /**
@@ -18,6 +22,14 @@ trait NameServer {
    * for making the connection & handling errors if necessary.
    */
   def lookupForeign(name: String): Option[(InetAddress, Int)]
+  
+  
+  def lookupAndConnect[Req,Resp](name:String): Option[OutPort[Req] with InPort[Resp]] = {
+    return lookupForeign(name) match {
+      case Some((addr,port)) => Some(NetIO.clientConnection[Req, Resp](addr, port, false))
+      case None => None
+    }
+  }
 
   // TODO deregister?
 }
