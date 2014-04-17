@@ -22,11 +22,10 @@ trait NameServer {
    * for making the connection & handling errors if necessary.
    */
   def lookupForeign(name: String): Option[(InetAddress, Int)]
-  
-  
-  def lookupAndConnect[Req,Resp](name:String): Option[OutPort[Req] with InPort[Resp]] = {
+
+  def lookupAndConnect[Req, Resp](name: String): Option[OutPort[Req] with InPort[Resp]] = {
     return lookupForeign(name) match {
-      case Some((addr,port)) => Some(NetIO.clientConnection[Req, Resp](addr, port, false))
+      case Some((addr, port)) => Some(NetIO.clientConnection[Req, Resp](addr, port, false)) // synchronous = false
       case None => None
     }
   }
