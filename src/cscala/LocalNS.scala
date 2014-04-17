@@ -5,37 +5,53 @@ import java.net.InetAddress
 import ox.CSO.ManyOne
 import ox.CSO.OneOne
 import ox.CSO.proc
-import ox.CSO.serve
+import ox.CSO._
 
 /**
- * Stores a mapping from String names -> (InetAddress, Int).
+ * Stores a mapping from String names -> (InetAddress, Int). 
+ * Doesn't allow duplicate records for one name
  * Exposed internally through `register` and `lookup` methods and over the network on NameServer.port (7700)
  */
 class LocalNS extends NameServer {
 
-  private val hashmap = new scala.collection.mutable.HashMap[String, (InetAddress, Int)]();
-  protected val toRegistry = ManyOne[(String, InetAddress, Int, OneOne[Boolean])]
-  protected val fromRegistry = ManyOne[(String, OneOne[Option[(InetAddress, Int)]])]
+  // IP Address, Port, ExpiryTime (milliseconds)
+  type Record = (InetAddress, Int, Long)
+  
+  private val hashmap = new scala.collection.mutable.HashMap[String, Record]();
+  
+  
+  protected val toRegistry = ManyOne[(String, InetAddress, Int, Long, OneOne[Boolean])] // used to make new entries (Long = TTL)
+  protected val fromRegistry = ManyOne[(String, OneOne[Option[Record]])] // used to do lookups
 
   // Constructor: spawns hashmap guard proc
   registry().fork
-
+  
   /**
    * Add a new mapping from String -> (InetAddress, Port)
    */
-  def registerForeign(name: String, address: InetAddress, port: Int): Boolean = {
+  override def registerForeign(name: String, address: InetAddress, port: Int, ttl: Long): Boolean = {
     val rtnCh = OneOne[Boolean]
-    toRegistry ! ((name, address, port, rtnCh))
+    toRegistry ! ((name, address, port, ttl, rtnCh))
     return rtnCh?
   }
 
   /**
    * Looks up the name in the registry
    */
-  def lookupForeign(name: String): Option[(InetAddress, Int)] = {
-    val rtnCh = OneOne[Option[(InetAddress, Int)]]
+  override def lookupForeign(name: String): Option[(InetAddress, Int)] = {
+    val rtnCh = OneOne[Option[Record]]
     fromRegistry ! ((name, rtnCh))
-    return rtnCh?
+    rtnCh? match {
+      case Some((addr,port,expiry)) =>{
+        if (expiry > System.currentTimeMillis()) {
+          return Some (addr,port) // slightly less data returned
+        } else { 
+          hashmap.remove(name) // expired record
+          return None
+        }
+      } 
+      case None => return None
+    }
   }
 
   /**
@@ -45,13 +61,10 @@ class LocalNS extends NameServer {
     println("LocalNS: starting a registry")
     serve(
       toRegistry ==> {
-        case (name, addr, port, rtn) =>
-          if (hashmap.contains(name))
-            rtn ! false
-          else {
-            hashmap.put(name, (addr, port))
+        case (name, addr, port, ttl, rtn) =>
+            val expiryTime = System.currentTimeMillis() + ttl
+            hashmap.put(name, (addr, port, expiryTime)) // important: hashmap doesn't store TTL!!
             rtn ! true
-          }
       } | fromRegistry ==> {
         case (n, rtn) => rtn ! hashmap.get(n)
       })

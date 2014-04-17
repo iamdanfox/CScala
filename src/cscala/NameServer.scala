@@ -4,10 +4,10 @@ import java.net.InetAddress
 
 trait NameServer {
   /**
-   * For registering a service that is network accessible.
+   * For registering a service that is network accessible. Use NameServer.DEFAULT_TTL if necessary
    */
-  def registerForeign(name: String, address: InetAddress, port: Int): Boolean
-
+  def registerForeign(name: String, address: InetAddress, port: Int, ttl: Long): Boolean
+  
   /**
    * For registering services that are only locally accessible
    */
@@ -24,11 +24,12 @@ trait NameServer {
 
 object NameServer {
   val port = 7700
+  val DEFAULT_TTL:Long = 1000*60*10 // 10 minutes
 }
 
 trait Msg {}
 
-case class Register(name: String, address: InetAddress, port: Int) extends Msg
+case class Register(name: String, address: InetAddress, port: Int, ttl: Long) extends Msg
 case class Lookup(name: String) extends Msg
 
 case class Success(name: String, address: InetAddress, port: Int) extends Msg

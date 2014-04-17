@@ -7,8 +7,8 @@ import java.net.InetAddress
  */
 class ForeignNSWrapper(conn: ox.cso.NetIO.Server[Msg, Msg]) extends NameServer {
 
-  def registerForeign(name: String, address: InetAddress, port: Int): Boolean = {
-    conn ! Register(name, address, port)
+  def registerForeign(name: String, address: InetAddress, port: Int, ttl: Long): Boolean = {
+    conn ! Register(name, address, port, ttl)
     val resp: Msg = (conn?)
     conn.close
     resp match {
