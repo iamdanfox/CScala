@@ -19,15 +19,12 @@ class LocalNS extends NameServer {
   
   private val hashmap = new scala.collection.mutable.HashMap[String, Record]();
   
-  protected val toRegistry = ManyOne[(String, InetAddress, Int, Long, OneOne[Boolean])] // used to make new entries
+  
+  protected val toRegistry = ManyOne[(String, InetAddress, Int, Long, OneOne[Boolean])] // used to make new entries (Long = TTL)
   protected val fromRegistry = ManyOne[(String, OneOne[Option[Record]])] // used to do lookups
 
   // Constructor: spawns hashmap guard proc
   registry().fork
-
-  // start reaper.
-  val stopReaper = OneOne[Unit]
-  reaper(stopReaper).fork
   
   /**
    * Add a new mapping from String -> (InetAddress, Port)
@@ -44,9 +41,16 @@ class LocalNS extends NameServer {
   override def lookupForeign(name: String): Option[(InetAddress, Int)] = {
     val rtnCh = OneOne[Option[Record]]
     fromRegistry ! ((name, rtnCh))
-    return rtnCh? match {
-      case Some((a,p,t)) => Some (a,p) // slightly less data returned
-      case None => None
+    rtnCh? match {
+      case Some((addr,port,expiry)) =>{
+        if (expiry > System.currentTimeMillis()) {
+          return Some (addr,port) // slightly less data returned
+        } else { 
+          hashmap.remove(name) // expired record
+          return None
+        }
+      } 
+      case None => return None
     }
   }
 
@@ -66,23 +70,5 @@ class LocalNS extends NameServer {
       })
     // TODO: when would this serve loop even terminate?
     toRegistry.close; fromRegistry.close;
-  }
-  
-  val REAPER_INTERVAL = 1000*3; // every 3 seconds
-
-  /**
-   * Every 3 seconds, this scans the `expires` list and deletes any expired records from the NameServer
-   */
-  private def reaper(stopCh: ?[Unit]) = proc {
-    serve(
-        stopCh ==> { _ => ox.CSO.Stop }
-      | after(REAPER_INTERVAL) --> { 
-        val now = System.currentTimeMillis()
-        print("reaping "+now+" :"+hashmap.size+" -> ")
-        hashmap.filter(t => t._2._3 < now).foreach(t => hashmap.remove(t._1));
-        println(hashmap.size)
-      }
-    )
-    stopCh.closein
   }
 }
