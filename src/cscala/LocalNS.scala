@@ -14,23 +14,27 @@ import ox.CSO._
  */
 class LocalNS extends NameServer {
 
-  type Record = (InetAddress, Int)
+  // IP Address, Port, TTL
+  type Record = (InetAddress, Int, Long)
+
+  case class Rcrd(addr: InetAddress, port: Int, ttl:Long)
   
   private val hashmap = new scala.collection.mutable.HashMap[String, Record]();
-    
-  // `expires` stores timeOfExpiry -> stringname mappings
-  private var expires = new scala.collection.immutable.TreeMap[Long,String]() // TODO: should be a set.
   
   protected val toRegistry = ManyOne[(String, InetAddress, Int, Long, OneOne[Boolean])]
-  protected val fromRegistry = ManyOne[(String, OneOne[Option[(InetAddress, Int)]])]
+  protected val fromRegistry = ManyOne[(String, OneOne[Option[(InetAddress, Int, Long)]])]
 
   // Constructor: spawns hashmap guard proc
   registry().fork
 
+  // start reaper.
+  val stopReaper = OneOne[Unit]
+  reaper(stopReaper).fork
+  
   /**
    * Add a new mapping from String -> (InetAddress, Port)
    */
-  def registerForeign(name: String, address: InetAddress, port: Int, ttl: Long): Boolean = {
+  override def registerForeign(name: String, address: InetAddress, port: Int, ttl: Long): Boolean = {
     val rtnCh = OneOne[Boolean]
     toRegistry ! ((name, address, port, ttl, rtnCh))
     return rtnCh?
@@ -39,10 +43,13 @@ class LocalNS extends NameServer {
   /**
    * Looks up the name in the registry
    */
-  def lookupForeign(name: String): Option[(InetAddress, Int)] = {
-    val rtnCh = OneOne[Option[(InetAddress, Int)]]
+  override def lookupForeign(name: String): Option[(InetAddress, Int)] = {
+    val rtnCh = OneOne[Option[(InetAddress, Int, Long)]]
     fromRegistry ! ((name, rtnCh))
-    return rtnCh?
+    return rtnCh? match {
+      case Some((a,p,t)) => Some (a,p) // slightly less data returned
+      case None => None
+    }
   }
 
   /**
@@ -53,10 +60,10 @@ class LocalNS extends NameServer {
     serve(
       toRegistry ==> {
         case (name, addr, port, ttl, rtn) =>
-          if (hashmap.get(name) == Some((addr,port))) // no updates
+          if (hashmap.get(name) == Some((addr,port,ttl)) ) // TODO no updates
             rtn ! false
           else {
-            hashmap.put(name, (addr, port))
+            hashmap.put(name, (addr, port, ttl))
             rtn ! true
           }
       } | fromRegistry ==> {
@@ -76,9 +83,9 @@ class LocalNS extends NameServer {
         stopCh ==> { _ => ox.CSO.Stop }
       | after(REAPER_INTERVAL) --> { 
         val now = System.currentTimeMillis()
-        val (overdue, stillAlive) = expires.partition(_._1 < now)
-        overdue.foreach(t => hashmap.remove(t._2))
-        expires = stillAlive
+        print("reaping "+now+" :")
+        hashmap.filter(t => t._2._3 < now).foreach(t => hashmap.remove(t._1));
+        println(hashmap.size)
       }
     )
     stopCh.closein
