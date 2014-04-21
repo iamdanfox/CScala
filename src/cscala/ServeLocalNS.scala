@@ -28,10 +28,10 @@ class ServeLocalNS extends LocalNS {
             case false => Failure(name)
           })
         case Lookup(name) =>
-          val respCh = OneOne[Option[(InetAddress, Int, Long)]]
+          val respCh = OneOne[Option[Record]]
           fromRegistry ! ((name, respCh))
           client ! (respCh? match {
-            case Some((addr, port, ttl)) => Success(name, addr, port)
+            case Some((addr, port, timestamp, ttl)) => Success(name, addr, port)
             case None => Failure(name)
           })
       }

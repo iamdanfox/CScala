@@ -14,13 +14,13 @@ import ox.CSO._
  */
 class LocalNS extends NameServer {
 
-  // IP Address, Port, ExpiryTime (milliseconds)
-  type Record = (InetAddress, Int, Long)
+  // IP Address, Port, Timestamp, TTL
+  type Record = (InetAddress, Int, Long, Long)
   
   private val hashmap = new scala.collection.mutable.HashMap[String, Record]();
   
-  
-  protected val toRegistry = ManyOne[(String, InetAddress, Int, Long, OneOne[Boolean])] // used to make new entries (Long = TTL)
+  // used to make new entries :       Name,   Addr,        Port, TTL
+  protected val toRegistry = ManyOne[(String, InetAddress, Int,  Long, OneOne[Boolean])] 
   protected val fromRegistry = ManyOne[(String, OneOne[Option[Record]])] // used to do lookups
 
   // Constructor: spawns hashmap guard proc
@@ -41,32 +41,36 @@ class LocalNS extends NameServer {
   override def lookupForeign(name: String): Option[(InetAddress, Int)] = {
     val rtnCh = OneOne[Option[Record]]
     fromRegistry ! ((name, rtnCh))
-    rtnCh? match {
-      case Some((addr,port,expiry)) =>{
-        if (expiry > System.currentTimeMillis()) {
-          return Some (addr,port) // slightly less data returned
-        } else { 
-          hashmap.remove(name) // expired record
-          return None
-        }
-      } 
-      case None => return None
+    return (rtnCh?) match {
+      case Some((addr,port, timestamp, ttl)) => Some (addr,port) // slightly less data returned
+      case None => None
     }
   }
 
   /**
    * Registry maintains (Name -> (InetAddress,Int)), ensuring no race conditions
+   * Maintains the TTL invariant. Only returns valid records.
    */
   private def registry() = proc { // started when class is constructed
     println("LocalNS: starting a registry")
     serve(
       toRegistry ==> {
         case (name, addr, port, ttl, rtn) =>
-            val expiryTime = System.currentTimeMillis() + ttl
-            hashmap.put(name, (addr, port, expiryTime)) // important: hashmap doesn't store TTL!!
+            hashmap.put(name, (addr, port, System.currentTimeMillis(), ttl)) // important: hashmap doesn't store TTL!!
             rtn ! true
       } | fromRegistry ==> {
-        case (n, rtn) => rtn ! hashmap.get(n)
+        case (n, rtn) =>
+          hashmap.get(n) match {
+            case Some((addr, port, timestamp, ttl)) => {
+              if (timestamp + ttl > System.currentTimeMillis()) {
+                rtn ! Some(addr, port, timestamp, ttl) // slightly less data returned
+              } else {
+                hashmap.remove(n) // expired record
+                rtn ! None
+              }
+            }
+            case None => rtn ! None
+          }
       })
     // TODO: when would this serve loop even terminate?
     toRegistry.close; fromRegistry.close;
