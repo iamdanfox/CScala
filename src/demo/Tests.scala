@@ -62,6 +62,13 @@ object Tests {
     println("7: "+wrap(NS().lookupForeign("ExpireIn0.5Seconds")==Some(l,999)) +"...")
     Thread.sleep(500)
     println("8: "+wrap(NS().lookupForeign("ExpireIn0.5Seconds")==None) )
+    
+    NS().registerForeign("DeadAlready", l, 999, NameServer.DEFAULT_TTL) 
+    NS().registerForeign("DeadAlready", l, 999, 0) // Overwrite TTL to 0 to force expiry
+    println("9: "+wrap(NS().lookupForeign("DeadAlready")==None))
+    
+    
+    
   }
   
   
