@@ -15,7 +15,7 @@ trait NameServer {
   /**
    * For registering services that are only locally accessible
    */
-  //  def registerLocal[Req <: Serial, Rep <: Serial](name: String, handle: Client[Req, Rep] => Unit):Boolean
+  def registerLocal[Req, Resp](name: String, handle: (OutPort[Resp] with InPort[Req]) => Unit):Boolean
 
   /**
    * Lookup a network accessible service.  Returns the address and port.  Calling code is responsible 
@@ -23,7 +23,7 @@ trait NameServer {
    */
   def lookupForeign(name: String): Option[(InetAddress, Int)]
 
-  def lookupAndConnect[Req, Resp](name: String): Option[OutPort[Req] with InPort[Resp]] = {
+  def lookupAndConnect[Req <: Serial, Resp <: Serial](name: String): Option[OutPort[Req] with InPort[Resp]] = {
     return lookupForeign(name) match {
       case Some((addr, port)) => Some(NetIO.clientConnection[Req, Resp](addr, port, false)) // synchronous = false
       case None => None

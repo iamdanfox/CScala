@@ -19,12 +19,40 @@ class LocalNS extends NameServer {
   
   private val hashmap = new scala.collection.mutable.HashMap[String, Record]();
   
+  private val localRegistry = new scala.collection.mutable.HashMap[String, Any] // TODO would be nice to typecheck this.
+//  private val localRegistry = new scala.collection.mutable.HashMap[String, (OutPort[_] with InPort[_]) => Unit]
   
   protected val toRegistry = ManyOne[(String, InetAddress, Int, Long, OneOne[Boolean])] // used to make new entries (Long = TTL)
   protected val fromRegistry = ManyOne[(String, OneOne[Option[Record]])] // used to do lookups
 
   // Constructor: spawns hashmap guard proc
   registry().fork
+  
+  
+  
+  
+  override def registerLocal[Req, Resp](name: String, handler: OutPort[Resp] with InPort[Req] => Unit):Boolean = {
+    localRegistry.+=((name, handler))
+    return false
+  }
+  
+  def lookupAndConnectLocal[Req, Resp](name: String) : Option[OutPort[Req] with InPort[Resp]] = {
+    localRegistry.get(name) match {
+      case Some(h) => {
+        val handle = h.asInstanceOf[OutPort[Resp] with InPort[Req] => Unit] // must match signature of `registerLocal`
+        
+        val toServer = OneOne[Req]
+        val fromServer = OneOne[Resp]
+        
+        handle(new ox.cso.Connection.ProxyClient(toServer,fromServer))
+        
+        val fakeServer = new ox.cso.Connection.ProxyServer(toServer, fromServer)
+        return Some(fakeServer)
+      }
+      case None => return None
+    }
+  }
+
   
   /**
    * Add a new mapping from String -> (InetAddress, Port)
