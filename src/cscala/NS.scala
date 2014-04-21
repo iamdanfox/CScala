@@ -35,7 +35,7 @@ object NS {
 
   private def findForeignNS(): Option[ox.cso.NetIO.Server[Msg, Msg]] = {
     try {
-      return Some(NetIO.clientConnection[Msg, Msg]("localhost", NameServer.port, false))
+      return Some(NetIO.clientConnection[Msg, Msg]("localhost", NameServer.NAMESERVER_PORT, false))
     } catch {
       // couldn't connect to localhost:7700, 
       case ce: java.net.ConnectException => return None

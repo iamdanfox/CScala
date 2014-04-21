@@ -8,7 +8,7 @@ import ox.cso.NetIO
 
 class ServeLocalNS extends LocalNS {
 
-  NetIO.serverPort(NameServer.port, 0, false, handleClient).fork
+  NetIO.serverPort(NameServer.NAMESERVER_PORT, 0, false, handleClient).fork
 
   /**
    * Handle each new client that requests.

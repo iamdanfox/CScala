@@ -6,6 +6,7 @@ import ox.CSO.ManyOne
 import ox.CSO.OneOne
 import ox.CSO.proc
 import ox.CSO._
+import cscala.NameServer._
 
 /**
  * Stores a mapping from String names -> (InetAddress, Int). 
@@ -15,12 +16,12 @@ import ox.CSO._
 class LocalNS extends NameServer {
 
   // IP Address, Port, Timestamp, TTL
-  type Record = (InetAddress, Int, Long, Long)
+  type Record = (InetAddress, Port, Timestamp, TTL)
+  type Timestamp = Long
   
   private val hashmap = new scala.collection.mutable.HashMap[String, Record]();
   
-  // used to make new entries :       Name,   Addr,        Port, TTL
-  protected val toRegistry = ManyOne[(String, InetAddress, Int,  Long, OneOne[Boolean])] 
+  protected val toRegistry = ManyOne[(String, InetAddress, Port, TTL, OneOne[Boolean])] 
   protected val fromRegistry = ManyOne[(String, OneOne[Option[Record]])] // used to do lookups
 
   // Constructor: spawns hashmap guard proc
@@ -29,7 +30,7 @@ class LocalNS extends NameServer {
   /**
    * Add a new mapping from String -> (InetAddress, Port)
    */
-  override def registerForeign(name: String, address: InetAddress, port: Int, ttl: Long): Boolean = {
+  override def registerForeign(name: String, address: InetAddress, port: Port, ttl: TTL): Boolean = {
     val rtnCh = OneOne[Boolean]
     toRegistry ! ((name, address, port, ttl, rtnCh))
     return rtnCh?
@@ -38,7 +39,7 @@ class LocalNS extends NameServer {
   /**
    * Looks up the name in the registry
    */
-  override def lookupForeign(name: String): Option[(InetAddress, Int)] = {
+  override def lookupForeign(name: String): Option[(InetAddress, Port)] = {
     val rtnCh = OneOne[Option[Record]]
     fromRegistry ! ((name, rtnCh))
     return (rtnCh?) match {

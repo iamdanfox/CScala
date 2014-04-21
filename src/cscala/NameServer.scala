@@ -10,7 +10,7 @@ trait NameServer {
   /**
    * For registering a service that is network accessible. Use NameServer.DEFAULT_TTL if necessary
    */
-  def registerForeign(name: String, address: InetAddress, port: Int, ttl: Long): Boolean
+  def registerForeign(name: String, address: InetAddress, port: NameServer.Port, ttl: NameServer.TTL): Boolean
   
   /**
    * For registering services that are only locally accessible
@@ -21,7 +21,7 @@ trait NameServer {
    * Lookup a network accessible service.  Returns the address and port.  Calling code is responsible 
    * for making the connection & handling errors if necessary.
    */
-  def lookupForeign(name: String): Option[(InetAddress, Int)]
+  def lookupForeign(name: String): Option[(InetAddress, NameServer.Port)]
 
   def lookupAndConnect[Req, Resp](name: String): Option[OutPort[Req] with InPort[Resp]] = {
     return lookupForeign(name) match {
@@ -34,14 +34,17 @@ trait NameServer {
 }
 
 object NameServer {
-  val port = 7700
-  val DEFAULT_TTL:Long = 1000*60*10 // 10 minutes
+  type Port = Int
+  type TTL = Long
+  
+  val NAMESERVER_PORT:Port = 7700
+  val DEFAULT_TTL:TTL = 1000*60*10 // 10 minutes
 }
 
 trait Msg {}
 
-case class Register(name: String, address: InetAddress, port: Int, ttl: Long) extends Msg
+case class Register(name: String, address: InetAddress, port: NameServer.Port, ttl: NameServer.TTL) extends Msg
 case class Lookup(name: String) extends Msg
 
-case class Success(name: String, address: InetAddress, port: Int) extends Msg
+case class Success(name: String, address: InetAddress, port: NameServer.Port) extends Msg
 case class Failure(name: String) extends Msg
