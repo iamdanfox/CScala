@@ -21,6 +21,9 @@ object Tests2 {
     NS()
     
     lookupForeign()
+    
+    println("---")
+    println("all done. Remember to stop both JVMs.")
   }
   
   private def lookupForeign() = {

@@ -16,6 +16,7 @@ object Tests {
     testLookupAndConnect();
     
     // TODO test ttl is forcing records to expire correctly
+    testTTLExpiry()
     
     println("---")
     println("done. Now run Tests2.scala")
@@ -54,6 +55,15 @@ object Tests {
       case None => println("6: failed badly")
     }
   }
+  
+  private def testTTLExpiry(){
+    val l =  InetAddress.getByName("localhost")
+    NS().registerForeign("ExpireIn0.5Seconds", l, 999, 500);
+    println("7: "+wrap(NS().lookupForeign("ExpireIn0.5Seconds")==Some(l,999)) +"...")
+    Thread.sleep(500)
+    println("8: "+wrap(NS().lookupForeign("ExpireIn0.5Seconds")==None) )
+  }
+  
   
   def wrap(b:Boolean) : String =  if (b) "pass" else "fail"
 }
