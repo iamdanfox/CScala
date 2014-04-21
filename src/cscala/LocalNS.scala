@@ -25,6 +25,7 @@ class LocalNS extends NameServer {
   protected val fromRegistry = ManyOne[(String, OneOne[Option[Record]])] // used to do lookups
 
   // Constructor: spawns hashmap guard proc
+  val haltCh = OneOne[Unit]
   registry().fork
   
   /**
@@ -57,9 +58,10 @@ class LocalNS extends NameServer {
     serve(
       toRegistry ==> {
         case (name, addr, port, ttl, rtn) =>
-            hashmap.put(name, (addr, port, System.currentTimeMillis(), ttl)) // important: hashmap doesn't store TTL!!
+            hashmap.put(name, (addr, port, System.currentTimeMillis(), ttl)) 
             rtn ! true
-      } | fromRegistry ==> {
+      } 
+      | fromRegistry ==> {
         case (n, rtn) =>
           hashmap.get(n) match {
             case Some((addr, port, timestamp, ttl)) => {
@@ -72,8 +74,12 @@ class LocalNS extends NameServer {
             }
             case None => rtn ! None
           }
-      })
-    // TODO: when would this serve loop even terminate?
-    toRegistry.close; fromRegistry.close;
+      }
+      | haltCh ==> ox.CSO.stop
+  )
+    toRegistry.close; fromRegistry.close; haltCh.close;
   }
+  
+  // Not part of any trait yet.
+  def stop() = haltCh!()
 }
