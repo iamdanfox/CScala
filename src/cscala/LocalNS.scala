@@ -25,7 +25,6 @@ class LocalNS extends NameServer {
   protected val fromRegistry = ManyOne[(String, OneOne[Option[Record]])] // used to do lookups
 
   // Constructor: spawns hashmap guard proc
-  val haltCh = OneOne[Unit]
   registry().fork
   
   /**
@@ -75,11 +74,7 @@ class LocalNS extends NameServer {
             case None => rtn ! None
           }
       }
-      | haltCh ==> ox.CSO.stop
   )
-    toRegistry.close; fromRegistry.close; haltCh.close;
+    toRegistry.close; fromRegistry.close;
   }
-  
-  // Not part of any trait yet.
-  def stop() = haltCh!()
 }
