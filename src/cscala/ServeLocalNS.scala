@@ -5,6 +5,7 @@ import java.net.InetAddress
 import ox.CSO.OneOne
 import ox.CSO.proc
 import ox.cso.NetIO
+import cscala.NameServer._
 
 class ServeLocalNS extends LocalNS {
 
@@ -19,7 +20,8 @@ class ServeLocalNS extends LocalNS {
       client? match {
         case Register(name, addr, port, ttl) =>
           val respCh = OneOne[Boolean]
-          toRegistry ! ((name, addr, port, ttl, respCh))
+          val timestamp = System.currentTimeMillis()
+          toRegistry ! ((name, addr, port, timestamp, ttl, respCh)) 
           client ! (respCh? match {
             case true => {
               println("Added " + name + " to the registry")
@@ -28,7 +30,7 @@ class ServeLocalNS extends LocalNS {
             case false => Failure(name)
           })
         case Lookup(name) =>
-          val respCh = OneOne[Option[Record]]
+          val respCh = OneOne[Option[LocalNS.Record]]
           fromRegistry ! ((name, respCh))
           client ! (respCh? match {
             case Some((addr, port, timestamp, ttl)) => Success(name, addr, port)
@@ -39,4 +41,25 @@ class ServeLocalNS extends LocalNS {
       client.close // TODO: should we really kill off the client after just one request?
     }.fork // TODO: why bother forking?
   }
+  
+  
+  /**
+   * Add a new mapping from String -> (InetAddress, Port)
+   */
+  override def registerForeign(name: String, address: InetAddress, port: Port, ttl: TTL): Boolean = {
+    val rtnCh = OneOne[Boolean]
+    val timestamp = System.currentTimeMillis()
+    toRegistry ! ((name, address, port, timestamp, ttl, rtnCh))
+    // every time an entry is successfully inserted into the registry, we must notify others.
+    return rtnCh?
+  }
+  
+  
+//  
+////   TODO: listen on some port for UDP broadcasts... update registry.
+//  
+//  private def notifyOthers(name:String, address:InetAddress,port:Port,ttl:TTL) {
+//    // UDP flooding.
+////    http://www.barricane.com/udp-echo-server-scala.html
+//  }
 }
