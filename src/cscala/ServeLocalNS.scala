@@ -46,21 +46,29 @@ class ServeLocalNS extends LocalNS {
    * Add a new mapping from String -> (InetAddress, Port)
    */
   override def registerForeign(name: String, address: InetAddress, port: Port, ttl: TTL): Boolean = {
+    // attempt insertion
     val rtnCh = OneOne[Boolean]
     val timestamp = System.currentTimeMillis()
     toRegistry ! ((name, address, port, timestamp, ttl, rtnCh))
-    // every time an entry is successfully inserted into the registry, we must notify others.
-    return rtnCh?
+    
+    // every time an entry is successfully inserted into the registry, we must notify other.
+    if (rtnCh?) {
+      // successful insertion
+//      notifyOthers()
+      // UDP broadcasts
+      return true
+    } else {
+      return false
+    }
+  }
+
+  // listen for UDP broadcasts
+  // fork this
+  def consistencyListener() = {
+    // use Datagram.scala... urgh
   }
   
   
-//  
-////   TODO: listen on some port for UDP broadcasts... update registry.
-//  
-//  private def notifyOthers(name:String, address:InetAddress,port:Port,ttl:TTL) {
-//    // UDP flooding.
-////    http://www.barricane.com/udp-echo-server-scala.html
-//  }
 }
 
 trait Msg {}
