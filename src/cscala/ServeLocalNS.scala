@@ -5,6 +5,7 @@ import java.net.InetAddress
 import ox.CSO.OneOne
 import ox.CSO.proc
 import ox.cso.NetIO
+import ox.cso.Datagram._
 import cscala.NameServer._
 
 class ServeLocalNS extends LocalNS {
@@ -20,7 +21,7 @@ class ServeLocalNS extends LocalNS {
       client? match {
         case Register(name, addr, port, timestamp, ttl) =>
           val respCh = OneOne[Boolean]
-          toRegistry ! ((name, addr, port, timestamp, ttl, respCh)) 
+          toRegistry ! ((name, addr, port, timestamp, ttl, respCh))
           client ! (respCh? match {
             case true => {
               println("Added " + name + " to the registry")
@@ -40,8 +41,7 @@ class ServeLocalNS extends LocalNS {
       client.close // TODO: should we really kill off the client after just one request?
     }.fork // TODO: why bother forking?
   }
-  
-  
+
   /**
    * Add a new mapping from String -> (InetAddress, Port)
    */
@@ -50,30 +50,51 @@ class ServeLocalNS extends LocalNS {
     val rtnCh = OneOne[Boolean]
     val timestamp = System.currentTimeMillis()
     toRegistry ! ((name, address, port, timestamp, ttl, rtnCh))
-    
+
     // every time an entry is successfully inserted into the registry, we must notify other.
     if (rtnCh?) {
-      // successful insertion
-//      notifyOthers()
-      // UDP broadcasts
+      // successful insertion, so notify other NameServers
+      sendMulticast ! Register(name, address, port, timestamp, ttl) // `Register` member of `Msg` trait
       return true
     } else {
       return false
     }
   }
 
-  // listen for UDP broadcasts
-  // fork this
-  def consistencyListener() = {
-    // use Datagram.scala... urgh
-  }
-  
-  
+  // set up UDP multicasting =============
+  val sendMulticast = OneOne[Register]
+  val recvMulticast = new OneOne[Register]
+
+  val socket = new java.net.MulticastSocket(ServeLocalNS.MULTICAST_PORT)
+  //   socket.joinGroup(InetAddress.getByName("localhost")) // no idea if this is correct.
+  val socketAddr = new java.net.InetSocketAddress(InetAddress.getByName("localhost"), ServeLocalNS.MULTICAST_PORT)
+  //  socket.setSoTimeout() // no idea what a normal timeout is
+
+  PortToSocket(sendMulticast, socket, socketAddr) {
+    println("ServerLocalNS PortToSocket terminated")
+    if (!socket.isClosed()) socket.close()
+    sendMulticast.close
+  }.withName("ServeLocalNS Multicast PortToSocket").fork
+
+  // listen for UDP broadcasts =============
+
+  // TODO. recover from buffer overflow
+  SocketToPort(ServeLocalNS.MAX_MCAST_LENGTH, socket, recvMulticast) {
+    // TODO: recursive initialisation?
+    if (!socket.isClosed()) socket.close()
+    recvMulticast.close
+  }.withName("ServerLocalNS Multicast SocketToPort").fork
+
+}
+
+object ServeLocalNS {
+  val MULTICAST_PORT = 3303
+  val MAX_MCAST_LENGTH = 65535 // TODO enforce some limit on outbound messages
 }
 
 trait Msg {}
 
-case class Register(name: String, address: InetAddress, port: NameServer.Port, timestamp:LocalNS.Timestamp, ttl: NameServer.TTL) extends Msg
+case class Register(name: String, address: InetAddress, port: NameServer.Port, timestamp: LocalNS.Timestamp, ttl: NameServer.TTL) extends Msg
 case class Lookup(name: String) extends Msg
 
 case class Success(name: String, address: InetAddress, port: NameServer.Port) extends Msg
