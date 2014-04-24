@@ -7,21 +7,21 @@ import ox.CSO.OneOne
 import ox.CSO.proc
 import ox.CSO._
 import cscala.NameServer._
+import cscala.LocalNS._
 
-/**
- * Stores a mapping from String names -> (InetAddress, Int). 
- * Doesn't allow duplicate records for one name
- * Exposed internally through `register` and `lookup` methods and over the network on NameServer.port (7700)
- */
-class LocalNS extends NameServer {
 
+object LocalNS {
   // IP Address, Port, Timestamp, TTL
   type Record = (InetAddress, Port, Timestamp, TTL)
   type Timestamp = Long
+}
+
+
+class LocalNS extends NameServer {
   
   private val hashmap = new scala.collection.mutable.HashMap[String, Record]();
   
-  protected val toRegistry = ManyOne[(String, InetAddress, Port, TTL, OneOne[Boolean])] 
+  protected val toRegistry = ManyOne[(String, InetAddress, Port, Timestamp, TTL, OneOne[Boolean])] 
   protected val fromRegistry = ManyOne[(String, OneOne[Option[Record]])] // used to do lookups
 
   // Constructor: spawns hashmap guard proc
@@ -32,7 +32,8 @@ class LocalNS extends NameServer {
    */
   override def registerForeign(name: String, address: InetAddress, port: Port, ttl: TTL): Boolean = {
     val rtnCh = OneOne[Boolean]
-    toRegistry ! ((name, address, port, ttl, rtnCh))
+    val timestamp = System.currentTimeMillis()
+    toRegistry ! ((name, address, port, timestamp, ttl, rtnCh))
     return rtnCh?
   }
 
@@ -49,32 +50,41 @@ class LocalNS extends NameServer {
   }
 
   /**
-   * Registry maintains (Name -> (InetAddress,Int)), ensuring no race conditions
+   * Registry protects the hashmap, ensuring no race conditions
    * Maintains the TTL invariant. Only returns valid records.
+   * Only accepts records with more recent timestamps.
    */
   private def registry() = proc { // started when class is constructed
     println("LocalNS: starting a registry")
+    // allows two possible operations. PUT (on toRegistry) and GET (on fromRegistry)
     serve(
       toRegistry ==> {
-        case (name, addr, port, ttl, rtn) =>
-            hashmap.put(name, (addr, port, System.currentTimeMillis(), ttl)) 
-            rtn ! true
-      } 
+        case (name, addr, port, newTimestamp, ttl, rtn) =>
+          // only accept record if the timestamp is more recent
+          rtn ! (hashmap.get(name) match {
+            case Some((_, _, existingTimestamp, _)) if newTimestamp < existingTimestamp =>
+              false // no update
+            case _ =>
+              hashmap.put(name, (addr, port, newTimestamp, ttl)) // new or updated record.
+              true
+          })
+      }
       | fromRegistry ==> {
         case (n, rtn) =>
-          hashmap.get(n) match {
-            case Some((addr, port, timestamp, ttl)) => {
-              if (timestamp + ttl > System.currentTimeMillis()) {
-                rtn ! Some(addr, port, timestamp, ttl) // slightly less data returned
-              } else {
-                hashmap.remove(n) // expired record
-                rtn ! None
+            // only return valid records
+            hashmap.get(n) match {
+              case Some((addr, port, timestamp, ttl)) => {
+                if (timestamp + ttl > System.currentTimeMillis()) {
+                  rtn ! Some(addr, port, timestamp, ttl) // slightly less data returned
+                } else {
+                  hashmap.remove(n) // expired record
+                  rtn ! None
+                }
               }
+              case None => rtn ! None
             }
-            case None => rtn ! None
-          }
       }
-  )
+    )
     toRegistry.close; fromRegistry.close;
   }
 }
