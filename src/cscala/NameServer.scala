@@ -40,11 +40,3 @@ object NameServer {
   val NAMESERVER_PORT:Port = 7700
   val DEFAULT_TTL:TTL = 1000*60*10 // 10 minutes
 }
-
-trait Msg {}
-
-case class Register(name: String, address: InetAddress, port: NameServer.Port, ttl: NameServer.TTL) extends Msg
-case class Lookup(name: String) extends Msg
-
-case class Success(name: String, address: InetAddress, port: NameServer.Port) extends Msg
-case class Failure(name: String) extends Msg

@@ -18,9 +18,8 @@ class ServeLocalNS extends LocalNS {
     proc("NameServer handler for " + client.socket) {
       // react appropriately to first message, then close
       client? match {
-        case Register(name, addr, port, ttl) =>
+        case Register(name, addr, port, timestamp, ttl) =>
           val respCh = OneOne[Boolean]
-          val timestamp = System.currentTimeMillis()
           toRegistry ! ((name, addr, port, timestamp, ttl, respCh)) 
           client ! (respCh? match {
             case true => {
@@ -63,3 +62,11 @@ class ServeLocalNS extends LocalNS {
 ////    http://www.barricane.com/udp-echo-server-scala.html
 //  }
 }
+
+trait Msg {}
+
+case class Register(name: String, address: InetAddress, port: NameServer.Port, timestamp:LocalNS.Timestamp, ttl: NameServer.TTL) extends Msg
+case class Lookup(name: String) extends Msg
+
+case class Success(name: String, address: InetAddress, port: NameServer.Port) extends Msg
+case class Failure(name: String) extends Msg
