@@ -4,6 +4,8 @@ import java.net.InetAddress
 
 import ox.CSO.OneOne
 import ox.CSO.proc
+import ox.CSO
+import ox.CSO._
 import ox.cso.NetIO
 import ox.cso.Datagram._
 import cscala.NameServer._
@@ -85,6 +87,19 @@ class ServeLocalNS extends LocalNS {
     recvMulticast.close
   }.withName("ServerLocalNS Multicast SocketToPort").fork
 
+  adapter.fork
+  
+  // pipes incoming multicast `Register` messages directly into the registry. no notifications.
+  private def adapter = proc {
+    repeat { true } {
+      recvMulticast? {
+        case Register(name,addr,port,timestamp,ttl) =>
+          val returnCh = OneOne[Boolean]
+          toRegistry ! ((name,addr,port,timestamp,ttl,returnCh))
+          (returnCh?) // TODO should we do something with this data?
+      } 
+    }
+  }
 }
 
 object ServeLocalNS {
