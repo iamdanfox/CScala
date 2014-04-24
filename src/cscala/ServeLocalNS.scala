@@ -15,7 +15,7 @@ class ServeLocalNS extends LocalNS {
   NetIO.serverPort(NameServer.NAMESERVER_PORT, 0, false, handleClient).fork
 
   /**
-   * Handle each new client that requests.
+   * Handle each new client that requests. TODO do we even need to respond to remote lookups?
    */
   private def handleClient(client: NetIO.Client[Msg, Msg]) = {
     proc("NameServer handler for " + client.socket) {
@@ -56,6 +56,7 @@ class ServeLocalNS extends LocalNS {
     // every time an entry is successfully inserted into the registry, we must notify other.
     if (rtnCh?) {
       // successful insertion, so notify other NameServers
+      println(" ServeLocalNS: Sending '"+name+"'")
       sendMulticast ! Register(name, address, port, timestamp, ttl) // `Register` member of `Msg` trait
       return true
     } else {
@@ -96,7 +97,8 @@ class ServeLocalNS extends LocalNS {
         case Register(name,addr,port,timestamp,ttl) =>
           val returnCh = OneOne[Boolean]
           toRegistry ! ((name,addr,port,timestamp,ttl,returnCh))
-          (returnCh?) // TODO should we do something with this data?
+          print(" ServeLocalNS: Receiving '"+name+"', saved=")
+          println (returnCh?) // TODO should we do something with this data?
       } 
     }
   }
