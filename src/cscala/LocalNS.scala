@@ -7,58 +7,34 @@ import ox.CSO.OneOne
 import ox.CSO.proc
 import ox.CSO._
 import cscala.NameServer._
-import cscala.LocalNS._
+import cscala.Registry._
 
 
-object LocalNS {
+object Registry {
   // IP Address, Port, Timestamp, TTL
   type Record = (InetAddress, Port, Timestamp, TTL)
   type Timestamp = Long
 }
 
 
-class LocalNS extends NameServer {
-  
+class Registry {
   private val hashmap = new scala.collection.mutable.HashMap[String, Record]();
   
-  protected val toRegistry = ManyOne[(String, InetAddress, Port, Timestamp, TTL, OneOne[Boolean])] 
-  protected val fromRegistry = ManyOne[(String, OneOne[Option[Record]])] // used to do lookups
-
-  // Constructor: spawns hashmap guard proc
-  registry().fork
+  val put = ManyOne[(String, InetAddress, Port, Timestamp, TTL, OneOne[Boolean])] 
+  val get = ManyOne[(String, OneOne[Option[Record]])] // used to do lookups
   
-  /**
-   * Add a new mapping from String -> (InetAddress, Port)
-   */
-  override def registerForeign(name: String, address: InetAddress, port: Port, ttl: TTL): Boolean = {
-    val rtnCh = OneOne[Boolean]
-    val timestamp = System.currentTimeMillis()
-    toRegistry ! ((name, address, port, timestamp, ttl, rtnCh))
-    return rtnCh?
-  }
-
-  /**
-   * Looks up the name in the registry
-   */
-  override def lookupForeign(name: String): Option[(InetAddress, Port)] = {
-    val rtnCh = OneOne[Option[Record]]
-    fromRegistry ! ((name, rtnCh))
-    return (rtnCh?) match {
-      case Some((addr,port, timestamp, ttl)) => Some (addr,port) // slightly less data returned
-      case None => None
-    }
-  }
-
+  guardProc().fork
+  
   /**
    * Registry protects the hashmap, ensuring no race conditions
    * Maintains the TTL invariant. Only returns valid records.
    * Only accepts records with more recent timestamps.
    */
-  private def registry() = proc { // started when class is constructed
+  private def guardProc() = proc { // started when class is constructed
     println("LocalNS: starting a registry")
     // allows two possible operations. PUT (on toRegistry) and GET (on fromRegistry)
     serve(
-      toRegistry ==> {
+      put ==> {
         case (name, addr, port, newTimestamp, ttl, rtn) =>
           // only accept record if the timestamp is more recent
           rtn ! (hashmap.get(name) match {
@@ -69,7 +45,7 @@ class LocalNS extends NameServer {
               true
           })
       }
-      | fromRegistry ==> {
+      | get ==> {
         case (n, rtn) =>
             // only return valid records
             hashmap.get(n) match {
@@ -85,6 +61,33 @@ class LocalNS extends NameServer {
             }
       }
     )
-    toRegistry.close; fromRegistry.close;
+    put.close; get.close;
+  }
+}
+
+class LocalNS extends NameServer {
+  
+  protected val registry = new Registry()
+  
+  /**
+   * Add a new mapping from String -> (InetAddress, Port)
+   */
+  override def registerForeign(name: String, address: InetAddress, port: Port, ttl: TTL): Boolean = {
+    val rtnCh = OneOne[Boolean]
+    val timestamp = System.currentTimeMillis()
+    registry.put ! ((name, address, port, timestamp, ttl, rtnCh))
+    return rtnCh?
+  }
+
+  /**
+   * Looks up the name in the registry
+   */
+  override def lookupForeign(name: String): Option[(InetAddress, Port)] = {
+    val rtnCh = OneOne[Option[Record]]
+    registry.get ! ((name, rtnCh))
+    return (rtnCh?) match {
+      case Some((addr,port, timestamp, ttl)) => Some (addr,port) // slightly less data returned
+      case None => None
+    }
   }
 }
