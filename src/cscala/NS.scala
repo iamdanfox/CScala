@@ -22,9 +22,8 @@ object NS {
       return impl
     } else findForeignNS() match {
       case Some(foreignNS) =>
-        //System.out.println("NS() trying to connect to local JVM")
-        // wrap the foreign server object with `register`, `lookup` methods
-        return new ForeignNSWrapper(foreignNS)
+        // wrap the foreign server object with `register`, `lookup` methods 
+        return new ForeignNSWrapper(foreignNS) // new connection is made for every single request. TODO: improve
       case None =>
         //println("NS() starting a new local NameServer")
         // start a new one, serving properly

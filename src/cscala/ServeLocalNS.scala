@@ -23,7 +23,7 @@ class ServeLocalNS extends LocalNS {
       client? match {
         case Register(name, addr, port, timestamp, ttl) =>
           val respCh = OneOne[Boolean]
-          toRegistry ! ((name, addr, port, timestamp, ttl, respCh))
+          registry.put ! ((name, addr, port, timestamp, ttl, respCh))
           client ! (respCh? match {
             case true => {
               println("Added " + name + " to the registry")
@@ -32,8 +32,8 @@ class ServeLocalNS extends LocalNS {
             case false => Failure(name)
           })
         case Lookup(name) =>
-          val respCh = OneOne[Option[LocalNS.Record]]
-          fromRegistry ! ((name, respCh))
+          val respCh = OneOne[Option[Registry.Record]]
+          registry.get ! ((name, respCh))
           client ! (respCh? match {
             case Some((addr, port, timestamp, ttl)) => Success(name, addr, port)
             case None => Failure(name)
@@ -51,7 +51,7 @@ class ServeLocalNS extends LocalNS {
     // attempt insertion
     val rtnCh = OneOne[Boolean]
     val timestamp = System.currentTimeMillis()
-    toRegistry ! ((name, address, port, timestamp, ttl, rtnCh))
+    registry.put ! ((name, address, port, timestamp, ttl, rtnCh))
 
     // every time an entry is successfully inserted into the registry, we must notify other.
     if (rtnCh?) {
@@ -96,7 +96,7 @@ class ServeLocalNS extends LocalNS {
       recvMulticast? {
         case Register(name,addr,port,timestamp,ttl) =>
           val returnCh = OneOne[Boolean]
-          toRegistry ! ((name,addr,port,timestamp,ttl,returnCh))
+          registry.put ! ((name,addr,port,timestamp,ttl,returnCh))
           print(" ServeLocalNS: Receiving '"+name+"', saved=")
           println (returnCh?) // TODO should we do something with this data?
       } 
@@ -111,7 +111,7 @@ object ServeLocalNS {
 
 trait Msg {}
 
-case class Register(name: String, address: InetAddress, port: NameServer.Port, timestamp: LocalNS.Timestamp, ttl: NameServer.TTL) extends Msg
+case class Register(name: String, address: InetAddress, port: NameServer.Port, timestamp: Registry.Timestamp, ttl: NameServer.TTL) extends Msg
 case class Lookup(name: String) extends Msg
 
 case class Success(name: String, address: InetAddress, port: NameServer.Port) extends Msg
