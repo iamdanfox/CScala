@@ -3,7 +3,9 @@ package cscala
 import java.net.InetAddress
 import ox.cso.NetIO.Server
 import ox.cso.NetIO._
-import ox.cso._
+import ox.cso.OutPort
+import ox.cso.InPort
+import ox.cso.NetIO
 
 
 trait NameServer {

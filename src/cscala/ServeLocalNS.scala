@@ -2,13 +2,14 @@ package cscala
 
 import java.net.InetAddress
 
+import cscala.NameServer.Port
+import cscala.NameServer.TTL
 import ox.CSO.OneOne
 import ox.CSO.proc
-import ox.CSO
-import ox.CSO._
+import ox.CSO.repeat
+import ox.cso.Datagram.PortToSocket
+import ox.cso.Datagram.SocketToPort
 import ox.cso.NetIO
-import ox.cso.Datagram._
-import cscala.NameServer._
 
 class ServeLocalNS extends LocalNS {
 
