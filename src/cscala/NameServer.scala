@@ -9,15 +9,40 @@ import ox.cso.NetIO
 
 
 trait NameServer {
-  /**
-   * For registering a service that is network accessible. Use NameServer.DEFAULT_TTL if necessary
-   */
-  def registerForeign(name: String, address: InetAddress, port: NameServer.Port, ttl: NameServer.TTL): Boolean
   
   /**
-   * For registering services that are only locally accessible
+   * The IP address at which this particular NameServer can be reached.
    */
-  //  def registerLocal[Req <: Serial, Rep <: Serial](name: String, handle: Client[Req, Rep] => Unit):Boolean
+  def nameServerAddress : InetAddress
+  
+  /**
+   * For registering a service that is network accessible. Use NameServer.DEFAULT_TTL if necessary.
+   * Returns true if the Record has been successfully saved, false otherwise
+   */
+  def registerForeign(name: String, address: InetAddress, port: NameServer.Port, ttl: NameServer.TTL): Boolean
+
+  /**
+   * Register a service and bind it to a socket.
+   */
+  def registerAndBind[Req, Rep](name: String, port: NameServer.Port, ttl: NameServer.TTL, handleClient: Client[Req, Rep] => Unit): Boolean = synchronized {
+    // `synchronized` keyword makes it atomic
+    // first, check if the name is in use.
+    lookupForeign(name) match {
+      case Some(_) => return false // name already in use 
+      case None =>
+        try {
+          // bind handler to a port
+          NetIO.serverPort(port, 0, false, handleClient).fork
+          // insert Record into Registry
+          registerForeign(name, nameServerAddress, port, ttl)
+          return true
+        } catch {
+          case e: java.net.BindException => return false // Port already in use
+          case _ => return false
+        }
+    }
+  }
+    
 
   /**
    * Lookup a network accessible service.  Returns the address and port.  Calling code is responsible 
