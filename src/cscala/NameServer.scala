@@ -25,12 +25,30 @@ trait NameServer {
    */
   def lookupForeign(name: String): Option[(InetAddress, NameServer.Port)]
 
+  /**
+   * Lookup a service. Returns the address and port or throws a NameNotFoundException.
+   */
+  def lookupForeign2(name: String): (InetAddress, NameServer.Port) = // TODO better name
+    lookupForeign(name) match {
+      case Some(v) => return v
+      case None => throw new NameServer.NameNotFoundException(name) // beware, scala treats all exceptions as RuntimeExceptions
+    }
+  
   def lookupAndConnect[Req, Resp](name: String): Option[OutPort[Req] with InPort[Resp]] = {
     return lookupForeign(name) match {
       case Some((addr, port)) => Some(NetIO.clientConnection[Req, Resp](addr, port, false)) // synchronous = false
       case None => None
     }
   }
+
+  /**
+   * Connect to a service. Returns the address and port or throws a NameNotFoundException.
+   */
+  def lookupAndConnect2[Req, Resp](name: String): OutPort[Req] with InPort[Resp] = // TODO better name
+    lookupAndConnect(name) match {
+      case Some(conn) => return conn
+      case None => throw new NameServer.NameNotFoundException(name)
+    }
 
   // TODO deregister?
 }
@@ -41,4 +59,6 @@ object NameServer {
   
   val NAMESERVER_PORT:Port = 7700
   val DEFAULT_TTL:TTL = 1000*60*10 // 10 minutes
+  
+  class NameNotFoundException(name: String) extends Exception {} 
 }
