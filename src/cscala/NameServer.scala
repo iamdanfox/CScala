@@ -13,7 +13,7 @@ trait NameServer {
   /**
    * The IP address at which this particular NameServer can be reached.
    */
-  def nameServerAddress : InetAddress
+  def nameServerAddress : InetAddress = InetAddress.getByName(InetAddress.getLocalHost().getHostAddress()) // TODO: final?
   
   /**
    * For registering a service that is network accessible. Use NameServer.DEFAULT_TTL if necessary.
