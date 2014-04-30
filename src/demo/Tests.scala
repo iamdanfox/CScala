@@ -34,6 +34,7 @@ object Tests {
   
   private def registerForeign() ={
     println("3: "+ wrap(NS().registerForeign("Test", InetAddress.getLocalHost(), 100, NameServer.DEFAULT_TTL)) )
+    println("   "+ wrap(NS().register("Test2", 101)) )
   }
   
   private def lookupForeign() = {
@@ -43,7 +44,8 @@ object Tests {
 
   private def testLookupAndConnect() ={
     EchoService.startEchoService(); // starts EchoService listening on port 3302
-    NS().registerForeign("EchoService", InetAddress.getByName("localhost"), EchoService.port, NameServer.DEFAULT_TTL)
+//    NS().registerForeign("EchoService", InetAddress.getByName("localhost"), EchoService.port, NameServer.DEFAULT_TTL)
+    NS().register("EchoService", EchoService.port)
     
     // pretend to be a client
     NS().lookupAndConnect("EchoService") match {
