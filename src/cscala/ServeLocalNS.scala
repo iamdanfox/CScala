@@ -11,6 +11,12 @@ import ox.cso.Datagram.PortToSocket
 import ox.cso.Datagram.SocketToPort
 import ox.cso.NetIO
 
+
+/**
+ * Functions as part of a system of nameservers, each maintaining the same state.  Hence, it must respond 
+ * to all the message types:
+ * 
+ */
 class ServeLocalNS extends LocalNS {
 
   NetIO.serverPort(NameServer.NAMESERVER_PORT, 0, false, handleClient).fork
@@ -18,7 +24,7 @@ class ServeLocalNS extends LocalNS {
   /**
    * Handle each new client that requests. TODO do we even need to respond to remote lookups?
    */
-  private def handleClient(client: NetIO.Client[Msg, Msg]) = {
+  private def handleClient(client: NetIO.Client[InterNSMsg, InterNSMsg]) = {
     proc("NameServer handler for " + client.socket) {
       // react appropriately to first message, then close
       client? match {
@@ -110,10 +116,10 @@ object ServeLocalNS {
   val MAX_MCAST_LENGTH = 65535 // TODO enforce some limit on outbound messages
 }
 
-trait Msg {}
+trait InterNSMsg {}
 
-case class Register(name: String, address: InetAddress, port: NameServer.Port, timestamp: Registry.Timestamp, ttl: NameServer.TTL) extends Msg
-case class Lookup(name: String) extends Msg
+case class Register(name: String, address: InetAddress, port: NameServer.Port, timestamp: Registry.Timestamp, ttl: NameServer.TTL) extends InterNSMsg
+case class Lookup(name: String) extends InterNSMsg
 
-case class Success(name: String, address: InetAddress, port: NameServer.Port) extends Msg
-case class Failure(name: String) extends Msg
+case class Success(name: String, address: InetAddress, port: NameServer.Port) extends InterNSMsg
+case class Failure(name: String) extends InterNSMsg
