@@ -6,6 +6,7 @@ import ox.cso.NetIO._
 import ox.cso.OutPort
 import ox.cso.InPort
 import ox.cso.NetIO
+import NameServer._
 
 
 trait NameServer {
@@ -15,16 +16,19 @@ trait NameServer {
    */
   def nameServerAddress : InetAddress = InetAddress.getByName(InetAddress.getLocalHost().getHostAddress()) // TODO: final?
   
+  def register(name:String, port:Port, ttl:TTL = NameServer.DEFAULT_TTL) : Boolean = 
+    return registerForeign(name, this.nameServerAddress, port, ttl)
+  
   /**
-   * For registering a service that is network accessible. Use NameServer.DEFAULT_TTL if necessary.
+   * For registering an arbritary service that is network accessible. Use NameServer.DEFAULT_TTL if necessary.
    * Returns true if the Record has been successfully saved, false otherwise
    */
-  def registerForeign(name: String, address: InetAddress, port: NameServer.Port, ttl: NameServer.TTL): Boolean
+  def registerForeign(name: String, address: InetAddress, port: Port, ttl: TTL = NameServer.DEFAULT_TTL): Boolean
 
   /**
    * Register a service and bind it to a socket.
    */
-  def registerAndBind[Req, Rep](name: String, port: NameServer.Port, ttl: NameServer.TTL, handleClient: Client[Req, Rep] => Unit): Boolean = synchronized {
+  def registerAndBind[Req, Rep](name: String, port: Port, ttl: TTL = NameServer.DEFAULT_TTL, handleClient: Client[Req, Rep] => Unit): Boolean = synchronized {
     // `synchronized` keyword makes it atomic
     // first, check if the name is in use.
     lookupForeign(name) match {
