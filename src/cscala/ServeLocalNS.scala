@@ -116,7 +116,27 @@ object ServeLocalNS {
   val MAX_MCAST_LENGTH = 65535 // TODO enforce some limit on outbound messages
 }
 
+
+/**
+ * these messages are broadcast over UDP to maintain consistency.
+ */ 
 trait InterNSMsg {}
+
+/**
+ * Broadcast when a new NameServer starts up, with an empty registry
+ */
+object AnyoneAwake extends InterNSMsg
+
+/**
+ * Other registries offer to fill the new nameserver
+ */
+case class OfferFill() extends InterNSMsg // TODO from IP??
+
+/**
+ * The new nameserver selects one particular
+ */
+//case class 
+
 
 case class Register(name: String, address: InetAddress, port: NameServer.Port, timestamp: Registry.Timestamp, ttl: NameServer.TTL) extends InterNSMsg
 case class Lookup(name: String) extends InterNSMsg
