@@ -11,6 +11,7 @@ import ox.cso.Datagram.PortToSocket
 import ox.cso.Datagram.SocketToPort
 import ox.cso.NetIO
 
+import cscala.InterNSMsg
 
 /**
  * Functions as part of a system of nameservers, each maintaining the same state.  Hence, it must respond 
@@ -108,6 +109,7 @@ class ServeLocalNS extends LocalNS {
           println (returnCh?) // TODO should we do something with this data?
       } 
     }
+    // TODO termination stuff
   }
 }
 
@@ -130,16 +132,21 @@ object AnyoneAwake extends InterNSMsg
 /**
  * Other registries offer to fill the new nameserver
  */
-case class OfferFill() extends InterNSMsg // TODO from IP??
+object OfferFill extends InterNSMsg // TODO: include some sort of 'summary' of registry state, describe originating
 
 /**
  * The new nameserver selects one particular
  */
-//case class 
+case class RequestFill(selected: InetAddress) extends InterNSMsg
 
+/**
+ * The selected nameserver sends the contents of the registry across. 
+ */
+case class Fill(contents: Set[Register]) extends InterNSMsg // TODO include some sort of 'summary' value
 
 case class Register(name: String, address: InetAddress, port: NameServer.Port, timestamp: Registry.Timestamp, ttl: NameServer.TTL) extends InterNSMsg
 case class Lookup(name: String) extends InterNSMsg
 
+// TODO: not sure these are necessary anymore:
 case class Success(name: String, address: InetAddress, port: NameServer.Port) extends InterNSMsg
 case class Failure(name: String) extends InterNSMsg
