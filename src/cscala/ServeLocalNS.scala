@@ -11,6 +11,13 @@ import ox.cso.Datagram.PortToSocket
 import ox.cso.Datagram.SocketToPort
 import ox.cso.NetIO
 
+import cscala.InterNSMsg
+
+/**
+ * Functions as part of a system of nameservers, each maintaining the same state.  Hence, it must respond 
+ * to all the message types:
+ * 
+ */
 class ServeLocalNS extends LocalNS {
 
   NetIO.serverPort(NameServer.NAMESERVER_PORT, 0, false, handleClient).fork
@@ -18,7 +25,7 @@ class ServeLocalNS extends LocalNS {
   /**
    * Handle each new client that requests. TODO do we even need to respond to remote lookups?
    */
-  private def handleClient(client: NetIO.Client[Msg, Msg]) = {
+  private def handleClient(client: NetIO.Client[InterNSMsg, InterNSMsg]) = {
     proc("NameServer handler for " + client.socket) {
       // react appropriately to first message, then close
       client? match {
@@ -102,6 +109,7 @@ class ServeLocalNS extends LocalNS {
           println (returnCh?) // TODO should we do something with this data?
       } 
     }
+    // TODO termination stuff
   }
 }
 
@@ -110,10 +118,35 @@ object ServeLocalNS {
   val MAX_MCAST_LENGTH = 65535 // TODO enforce some limit on outbound messages
 }
 
-trait Msg {}
 
-case class Register(name: String, address: InetAddress, port: NameServer.Port, timestamp: Registry.Timestamp, ttl: NameServer.TTL) extends Msg
-case class Lookup(name: String) extends Msg
+/**
+ * these messages are broadcast over UDP to maintain consistency.
+ */ 
+trait InterNSMsg {}
 
-case class Success(name: String, address: InetAddress, port: NameServer.Port) extends Msg
-case class Failure(name: String) extends Msg
+/**
+ * Broadcast when a new NameServer starts up, with an empty registry
+ */
+object AnyoneAwake extends InterNSMsg
+
+/**
+ * Other registries offer to fill the new nameserver
+ */
+object OfferFill extends InterNSMsg // TODO: include some sort of 'summary' of registry state, describe originating
+
+/**
+ * The new nameserver selects one particular
+ */
+case class RequestFill(selected: InetAddress) extends InterNSMsg
+
+/**
+ * The selected nameserver sends the contents of the registry across. 
+ */
+case class Fill(contents: Set[Register]) extends InterNSMsg // TODO include some sort of 'summary' value
+
+case class Register(name: String, address: InetAddress, port: NameServer.Port, timestamp: Registry.Timestamp, ttl: NameServer.TTL) extends InterNSMsg
+case class Lookup(name: String) extends InterNSMsg
+
+// TODO: not sure these are necessary anymore:
+case class Success(name: String, address: InetAddress, port: NameServer.Port) extends InterNSMsg
+case class Failure(name: String) extends InterNSMsg
