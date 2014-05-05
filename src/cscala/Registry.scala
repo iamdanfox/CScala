@@ -24,6 +24,7 @@ class Registry {
   
   val put = ManyOne[(String, InetAddress, Port, Timestamp, TTL, OneOne[Boolean])] 
   val get = ManyOne[(String, OneOne[Option[Record]])] // used to do lookups
+  val stop = OneOne[Unit]
   
   guardProc().fork
   
@@ -62,6 +63,7 @@ class Registry {
               case None => rtn ! None
             }
       }
+      | stop ==> ox.CSO.stop
     )
     put.close; get.close;
   }
