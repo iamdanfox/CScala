@@ -11,7 +11,6 @@ import ox.cso.Datagram.PortToSocket
 import ox.cso.Datagram.SocketToPort
 import ox.cso.NetIO
 
-import cscala.InterNSMsg
 
 /**
  * Functions as part of a system of nameservers, each maintaining the same state.  
@@ -26,6 +25,9 @@ import cscala.InterNSMsg
  * 
  */
 class ServeLocalNS extends LocalNS {
+  
+  
+  // TODO REFACTOR THIS REFACTOR THIS REFACTOR THIS!!!!!
 
   NetIO.serverPort(NameServer.NAMESERVER_PORT, 0, false, handleClient).fork
   
