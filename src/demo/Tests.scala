@@ -18,6 +18,8 @@ object Tests {
     // TODO test ttl is forcing records to expire correctly
     testTTLExpiry()
     
+    testRegistryStopping()
+    
     println("---")
     println("done. Now run Tests2.scala")
   }
@@ -71,6 +73,12 @@ object Tests {
     
     
     
+  }
+  
+  private def testRegistryStopping(){
+    val r = new Registry()
+    r.terminate!()
+    println("10: pass")
   }
   
   

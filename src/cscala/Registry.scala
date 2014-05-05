@@ -24,7 +24,12 @@ class Registry {
   
   val put = ManyOne[(String, InetAddress, Port, Timestamp, TTL, OneOne[Boolean])] 
   val get = ManyOne[(String, OneOne[Option[Record]])] // used to do lookups
-  val stop = OneOne[Unit]
+  
+  /**
+   * Send a unit () to this channel to terminate the Registry.  Note, the thread will only
+   * terminate when the threadpool is all done.
+   */
+  val terminate = OneOne[Unit]
   
   guardProc().fork
   
@@ -34,7 +39,6 @@ class Registry {
    * Only accepts records with more recent timestamps.
    */
   private def guardProc() = proc { // started when class is constructed
-    println("LocalNS: starting a registry")
     // allows two possible operations. PUT (on toRegistry) and GET (on fromRegistry)
     serve(
       put ==> {
@@ -63,7 +67,7 @@ class Registry {
               case None => rtn ! None
             }
       }
-      | stop ==> ox.CSO.stop
+      | terminate ==> {_ => ox.CSO.stop}
     )
     put.close; get.close;
   }
