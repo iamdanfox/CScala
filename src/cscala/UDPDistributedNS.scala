@@ -4,8 +4,9 @@ import java.net.InetAddress
 
 import cscala.NameServer.Port
 import cscala.NameServer.TTL
-import ox.CSO.OneOne
+import ox.CSO._
 import ox.CSO.proc
+import ox.CSO.serve
 import ox.CSO.repeat
 import ox.cso.Datagram.PortToSocket
 import ox.cso.Datagram.SocketToPort
@@ -32,25 +33,48 @@ class UDPDistributedNS extends NameServer {
   val sendMulticast = OneOne[UDPDistributedNS.UDPMessage]
   val recvMulticast = OneOne[UDPDistributedNS.UDPMessage]
 
-  val socket = new java.net.MulticastSocket(UDPDistributedNS.MULTICAST_PORT)
-  socket.joinGroup(InetAddress.getByName("localhost")) // no idea if this is 
-  val socketAddr = new java.net.InetSocketAddress(InetAddress.getByName("localhost"), UDPDistributedNS.MULTICAST_PORT)
-  //  socket.setSoTimeout() // no idea what a normal timeout is
+  /** 
+   *  This can be overridden to mock the registry for testing.
+   */
+  private def wireUpPortsToSocket() {
+    val socket = new java.net.MulticastSocket(UDPDistributedNS.MULTICAST_PORT)
+    socket.joinGroup(InetAddress.getByName("localhost")) // no idea if this is necessary
+    val socketAddr = new java.net.InetSocketAddress(InetAddress.getByName("localhost"), UDPDistributedNS.MULTICAST_PORT)
+    //  socket.setSoTimeout() // no idea what a normal timeout is
 
-  PortToSocket(sendMulticast, socket, socketAddr) {
-    println("UDPDistributedNS PortToSocket terminated")
-    if (!socket.isClosed()) socket.close()
-    sendMulticast.close
-  }.withName("UDPDistributedNS Multicast PortToSocket").fork
+    PortToSocket(sendMulticast, socket, socketAddr) {
+      println("UDPDistributedNS PortToSocket terminated")
+      if (!socket.isClosed()) socket.close()
+      sendMulticast.close
+    }.withName("UDPDistributedNS Multicast PortToSocket").fork
 
-  // listen for UDP broadcasts =============
+    // listen for UDP broadcasts =============
 
-  // TODO. recover from buffer overflow
-  SocketToPort(UDPDistributedNS.MAX_MCAST_LENGTH, socket, recvMulticast) {
-    // TODO: recursive initialisation?
-    if (!socket.isClosed()) socket.close()
-    recvMulticast.close
-  }.withName("UDPDistributedNS Multicast SocketToPort").fork
+    // TODO. recover from buffer overflow
+    SocketToPort(UDPDistributedNS.MAX_MCAST_LENGTH, socket, recvMulticast) {
+      // TODO: recursive initialisation?
+      if (!socket.isClosed()) socket.close()
+      recvMulticast.close
+    }.withName("UDPDistributedNS Multicast SocketToPort").fork
+  }
+  wireUpPortsToSocket()
+  
+  
+  // TODO send AnyoneAwake
+  sendMulticast!AnyoneAwake;
+  // TODO receive OfferFills with a max running time
+  serve(
+      recvMulticast ==> {
+        case OfferFill(from) => println(from)
+      } | 
+      after(1000) --> { // TODO switch this to have a max running time.
+        // TODO stop
+      }
+  )
+  
+  
+  
+  
   
 
   multicastAdapter.fork
@@ -122,7 +146,7 @@ object UDPDistributedNS {
   /**
    * Other registries offer to fill the new nameserver
    */
-  object OfferFill extends UDPMessage // TODO: include some sort of 'summary' of registry state, describe originating
+  case class OfferFill(from: InetAddress) extends UDPMessage // TODO: include some sort of 'summary' of registry state, describe originating
 
   /**
    * The new nameserver selects one particular
