@@ -60,17 +60,54 @@ class UDPDistributedNS extends NameServer {
   wireUpPortsToSocket()
   
   
-  // TODO send AnyoneAwake
-  sendMulticast!AnyoneAwake;
-  // TODO receive OfferFills with a max running time
-  serve(
+  val offerChosen = OneOne[InetAddress]
+  
+  val fillListener = proc {
+    sendMulticast!AnyoneAwake;
+    serve(
       recvMulticast ==> {
         case OfferFill(from) => println(from)
-      } | 
-      after(1000) --> { // TODO switch this to have a max running time.
-        // TODO stop
+      } 
+      | offerChosen -!-> {
+        offerChosen!InetAddress.getLocalHost(); // TODO replace this
       }
-  )
+    )
+  }
+  
+  val fillOfferController = proc{
+    Thread.sleep(1000);
+    val selected = offerChosen?;
+    //   accept one offer
+    sendMulticast!RequestFill(selected, nameServerAddress)
+
+    // receive a 'Fill' message; discarding other types.
+    serve(
+      recvMulticast ==> {
+        case Fill(contents) => {
+          contents.foreach( r => {
+            val rtnCh = OneOne[Boolean]
+            registry.put!((r.name, r.address, r.port, r.timestamp, r.ttl, rtnCh))
+            rtnCh?;
+          })
+          // once the registry has been filled, start up and start accepting requests.
+          // TODO
+        }
+        case _ => println("ignore other type")
+      }
+    )
+    
+
+  }
+  
+  val actualRegistry = proc {
+    // wait for the registry to be filled
+    // maybe use semaphores!!!
+    // TODO
+  }
+  
+  (fillOfferController || fillListener || actualRegistry)()
+  
+  
   
   
   
@@ -151,7 +188,7 @@ object UDPDistributedNS {
   /**
    * The new nameserver selects one particular
    */
-  case class RequestFill(selected: InetAddress) extends UDPMessage
+  case class RequestFill(filler: InetAddress, fillee: InetAddress) extends UDPMessage
 
   /**
    * The selected nameserver sends the contents of the registry across.
