@@ -30,8 +30,8 @@ class UDPDistributedNS extends NameServer {
   val registry = new Registry()
   
   // set up UDP multicasting =============
-  val sendMulticast = OneOne[UDPDistributedNS.UDPMessage]
-  val recvMulticast = OneOne[UDPDistributedNS.UDPMessage]
+  private def sendMulticast = OneOne[UDPDistributedNS.UDPMessage]
+  private def recvMulticast = OneOne[UDPDistributedNS.UDPMessage]
 
   /** 
    *  This can be overridden to mock the registry for testing.
