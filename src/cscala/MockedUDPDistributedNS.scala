@@ -4,7 +4,7 @@ import ox.CSO._
 /**
  * A version of the UDPDistributedNS that doesn't actually attempt to communicate over
  */
-class MockedUDPDistributedNS(total:Int) extends UDPDistributedNS {
+class MockedUDPDistributedNS(simulator:MulticastSimulator) extends UDPDistributedNS {
 
 //  val sendMulticast = OneOne[UDPDistributedNS.UDPMessage]
 //  val recvMulticast = OneOne[UDPDistributedNS.UDPMessage]
