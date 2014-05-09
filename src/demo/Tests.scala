@@ -2,6 +2,7 @@ package demo
 
 import cscala._
 import java.net._
+import ox.cso.Components
 
 object Tests {
 
@@ -10,15 +11,16 @@ object Tests {
    */
   def main(args: Array[String]): Unit = {
     
-    instantiation()
-    registerForeign()
-    lookupForeign()
-    testLookupAndConnect();
+//    instantiation()
+//    registerForeign()
+//    lookupForeign()
+//    testLookupAndConnect();
+//    
+//    testTTLExpiry()
+//    
+//    testRegistryStopping()
     
-    // TODO test ttl is forcing records to expire correctly
-    testTTLExpiry()
-    
-    testRegistryStopping()
+    testUDPDistributedNS()
     
     println("---")
     println("done. Now run Tests2.scala")
@@ -79,6 +81,18 @@ object Tests {
     val r = new Registry()
     r.terminate!()
     println("10: pass")
+  }
+  
+  private def testUDPDistributedNS(){
+    val sim = new MulticastSimulator()
+    // console logger
+    val index = sim.join()
+    ox.cso.Components.console(sim.memberChans(index)).fork
+//    sim.sendMessage!UDPDistributedNS.AnyoneAwake
+    
+    val ns1 = new MockedUDPDistributedNS(sim)
+//    val ns2 = new MockedUDPDistributedNS(sim)
+    
   }
   
   
