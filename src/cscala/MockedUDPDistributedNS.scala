@@ -4,12 +4,14 @@ import ox.CSO._
 /**
  * A version of the UDPDistributedNS that doesn't actually attempt to communicate over
  */
-class MockedUDPDistributedNS(simulator:MulticastSimulator, index:Int) extends UDPDistributedNS {
+class MockedUDPDistributedNS(simulator:MulticastSimulator) extends UDPDistributedNS {
 
+  val index = simulator.join()
+  
   protected override def sendMulticast = simulator.sendMessage // TODO: `override` keyword not working here.
   protected override def recvMulticast = simulator.memberChans(index)
 
-  private def wireUpPortsToSocket() {}
+  protected override def wireUpPortsToSocket() {}
   
 //  wireUpPortsToSocket()
 }
@@ -37,17 +39,19 @@ class MulticastSimulator() {
    */
   def join() : Int = {
     poolSize = poolSize + 1;
+//    println(poolSize)
     return poolSize-1;
   }
-  
-  def receiveChan(id : Int) : ?[UDPDistributedNS.UDPMessage] = {
-    assert(id < poolSize)
-    memberChans(id)
-  }
+//  
+//  def receiveChan(id : Int) : ?[UDPDistributedNS.UDPMessage] = {
+//    assert(id < poolSize)
+//    memberChans(id)
+//  }
 
   private def multiplexer = proc {
     repeat {
       val v = sendMessage?;
+//      println("Multiplexing message: "+v)
       memberChans.foreach(c => c ! v);
     }
   }

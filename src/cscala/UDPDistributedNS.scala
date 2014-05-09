@@ -36,7 +36,7 @@ class UDPDistributedNS extends NameServer {
   /** 
    *  This can be overridden to mock the registry for testing.
    */
-  private def wireUpPortsToSocket() {
+  protected def wireUpPortsToSocket() {
     val socket = new java.net.MulticastSocket(UDPDistributedNS.MULTICAST_PORT)
     socket.joinGroup(InetAddress.getByName("localhost")) // no idea if this is necessary
     val socketAddr = new java.net.InetSocketAddress(InetAddress.getByName("localhost"), UDPDistributedNS.MULTICAST_PORT)
