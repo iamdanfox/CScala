@@ -19,6 +19,8 @@ class MockedUDPDistributedNS(simulator:MulticastSimulator, index:Int) extends UD
  * Essentially just multiplexes anything sent over the `sendMessage` channel, to all members in the pool.
  * 
  * In order delivery, doesn't drop packets, doesn't support leaving.
+ * 
+ * Currently unstoppable.
  */
 class MulticastSimulator() {
   
