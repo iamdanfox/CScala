@@ -60,16 +60,22 @@ class UDPDistributedNS extends NameServer {
   wireUpPortsToSocket()
   
   
+  /*
+   * Distributed protocol implemented below here.
+   */
   val offerChosen = OneOne[InetAddress]
   
   val fillListener = proc {
     sendMulticast!AnyoneAwake;
+    var selected = null.asInstanceOf[InetAddress]
+    val chooseChan : ![InetAddress] = offerChosen
     serve(
       recvMulticast ==> {
-        case OfferFill(from) => println(from)
+        case OfferFill(from) => selected = from // TODO: strategy
+        case _ => {} // ignore other types.
       } 
-      | offerChosen -!-> {
-        offerChosen!InetAddress.getLocalHost(); // TODO replace this
+      | (selected != null &&& chooseChan) --> {
+        offerChosen!selected
       }
     )
   }
