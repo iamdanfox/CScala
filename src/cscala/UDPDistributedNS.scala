@@ -29,7 +29,8 @@ import cscala.UDPDistributedNS._
 class UDPDistributedNS extends NameServer {
 
   val registry = new Registry()
-  val FILL_TIMEOUT = 2000
+  val FILL_TIMEOUT = 1000
+  val ANYONE_AWAKE_TIMEOUT = 1000
   
   // set up UDP multicasting =============
   protected def sendMulticast : ?[UDPMessage] with ![UDPMessage] = OneOne[UDPDistributedNS.UDPMessage]
@@ -65,65 +66,37 @@ class UDPDistributedNS extends NameServer {
   /*
    * Distributed protocol implemented below here.
    */
-  val semaphore = new java.util.concurrent.Semaphore(1,true)
-  semaphore.acquire()
   
   val offerChosen = OneOne[InetAddress]
   
-  val fillListener = proc {
+  val offerListener = proc {
     sendMulticast!AnyoneAwake;
-    var selected = null.asInstanceOf[InetAddress]
     val chooseChan : ![InetAddress] = offerChosen
+    val recv : ?[UDPMessage] = recvMulticast
+    
+    val giveUp = System.currentTimeMillis + ANYONE_AWAKE_TIMEOUT
     serve(
-      recvMulticast ==> {
-        case OfferFill(from) => selected = from // TODO: strategy
+      (System.currentTimeMillis < giveUp &&& recv) ==> {
+        case OfferFill(from) => offerChosen!from // currently accepts the first offer. TODO, better stratagy?
         case _ => {} // ignore other types.
       } 
-      | (selected != null &&& chooseChan) --> {
-        offerChosen!selected
-      }
     )
   }
 
-  val fillOfferController = proc {
+  val fillRequester = proc {
     alt(offerChosen ==> { selected =>
           //   accept one offer
           sendMulticast ! RequestFill(selected, nameServerAddress)
-    
-          // receive a 'Fill' message; discarding other types.
-          serve(
-            recvMulticast ==> {
-              case Fill(contents) => {
-                contents.foreach(r => {
-                  val rtnCh = OneOne[Boolean]
-                  registry.put ! ((r.name, r.address, r.port, r.timestamp, r.ttl, rtnCh))
-                  rtnCh?;
-                })
-    
-                ox.CSO.Stop
-              }
-              case _ => println("ignore other type")
-            }
-          )
         }
-      | after(FILL_TIMEOUT) ==> {
-        // Give up listening for a Fill message 
+      | after(ANYONE_AWAKE_TIMEOUT + FILL_TIMEOUT) ==> {
+        // Give up listening for a OfferFill message 
+        println("Gave up listening for an OfferFill message")
       }
     )
-    
-    // unblock the waitForFill method.
-    semaphore.release()
   }
   
-  /**
-   * Blocks until the initial fill is completed.
-   */
-  def waitForFill() = synchronized {
-    semaphore.acquire() // blocks until the 
-    semaphore.release()
-  }
-  
-  (fillOfferController || fillListener)()
+  // constructor will only start accepting when both of these are finished
+  (fillRequester || offerListener)()
   
   
   
@@ -140,12 +113,21 @@ class UDPDistributedNS extends NameServer {
   private def multicastAdapter = proc {
     repeat { true } {
       recvMulticast? {
-        case UDPDistributedNS.Register(name,addr,port,timestamp,ttl) =>
+        case UDPDistributedNS.Register(name,addr,port,timestamp,ttl) => {
           val returnCh = OneOne[Boolean]
           registry.put ! ((name,addr,port,timestamp,ttl,returnCh))
           print(" UDPDistributedNS: Receiving '"+name+"', saved=")
           val wasUpdated = returnCh?; 
           println(wasUpdated) // TODO should we do something with this data?
+        }
+        case Fill(contents) => {
+          contents.foreach(r => {
+              val rtnCh = OneOne[Boolean]
+              registry.put ! ((r.name, r.address, r.port, r.timestamp, r.ttl, rtnCh))
+              rtnCh?;
+          })
+        }
+        // case _ ??? 
       } 
     }
     recvMulticast.close
