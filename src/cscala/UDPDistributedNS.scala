@@ -24,7 +24,7 @@ import cscala.UDPDistributedNS._
  * 
  * Also broadcast updates over UDP. 
  * 
- * 
+ * BEWARE: Constructor blocks until the protocol has finished or timed out.
  */
 class UDPDistributedNS extends NameServer {
 
@@ -71,16 +71,15 @@ class UDPDistributedNS extends NameServer {
   
   val offerListener = proc {
     sendMulticast!AnyoneAwake;
-    val chooseChan : ![InetAddress] = offerChosen
-    val recv : ?[UDPMessage] = recvMulticast
     
-    val giveUp = System.currentTimeMillis + ANYONE_AWAKE_TIMEOUT
     serve(
-      (System.currentTimeMillis < giveUp &&& recv) ==> {
-        case OfferFill(from) => offerChosen!from // currently accepts the first offer. TODO, better stratagy?
+      recvMulticast ==> {
+        case OfferFill(from) => offerChosen!from // currently accepts the first offer. TODO, better strategy?
         case _ => {} // ignore other types.
-      } 
+      } |
+      after(ANYONE_AWAKE_TIMEOUT) ==> ox.CSO.stop // TODO: what if we keep receiving non `OfferFill` messages?
     )
+//    println("offerListener done")
   }
 
   val fillRequester = proc {
@@ -89,15 +88,13 @@ class UDPDistributedNS extends NameServer {
           sendMulticast ! RequestFill(selected, nameServerAddress)
         }
       | after(ANYONE_AWAKE_TIMEOUT + FILL_TIMEOUT) ==> {
-        // Give up listening for a OfferFill message 
-        println("Gave up listening for an OfferFill message")
+//        println("Gave up listening for an OfferFill message")
       }
     )
   }
   
   // constructor will only start accepting when both of these are finished
   (fillRequester || offerListener)()
-  
   
   
   
@@ -127,7 +124,7 @@ class UDPDistributedNS extends NameServer {
               rtnCh?;
           })
         }
-        // case _ ??? 
+        case _ => {} // ignore other messages  
       } 
     }
     recvMulticast.close

@@ -90,6 +90,8 @@ object Tests {
     ox.cso.Components.console(sim.memberChans(index)).fork
     
     val ns1 = new MockedUDPDistributedNS(sim)
+    println("ns1 initialised")
+    
 //    val ns2 = new MockedUDPDistributedNS(sim)
     
   }
