@@ -8,21 +8,19 @@ class MockedUDPDistributedNS(simulator:MulticastSimulator) extends UDPDistribute
 
   val index = simulator.join()
   
-  protected override def sendMulticast = simulator.sendMessage // TODO: `override` keyword not working here.
+  protected override def sendMulticast = simulator.sendMessage 
   protected override def recvMulticast = simulator.memberChans(index)
 
-  protected override def wireUpPortsToSocket() {}
-  
-//  wireUpPortsToSocket()
+  protected override def wireUpPortsToSocket() {} // overrides all the UDP connection stuff
 }
 
 /**
- * A naive simulation of the UDP layer.
+ * A very naive simulation of the UDP layer.
  * Essentially just multiplexes anything sent over the `sendMessage` channel, to all members in the pool.
  * 
- * In order delivery, doesn't drop packets, doesn't support leaving.
+ * USAGE: First join the group with `.join()` then listen for messages on the `.memberChans(index)` channel
  * 
- * Currently unstoppable.
+ * In-order delivery, doesn't drop packets, doesn't support leaving. Currently unstoppable. 
  */
 class MulticastSimulator() {
   
@@ -42,11 +40,6 @@ class MulticastSimulator() {
 //    println(poolSize)
     return poolSize-1;
   }
-//  
-//  def receiveChan(id : Int) : ?[UDPDistributedNS.UDPMessage] = {
-//    assert(id < poolSize)
-//    memberChans(id)
-//  }
 
   private def multiplexer = proc {
     repeat {

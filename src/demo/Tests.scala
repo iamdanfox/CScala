@@ -85,10 +85,9 @@ object Tests {
   
   private def testUDPDistributedNS(){
     val sim = new MulticastSimulator()
-    // console logger
+    // print every UDP message to the console
     val index = sim.join()
     ox.cso.Components.console(sim.memberChans(index)).fork
-//    sim.sendMessage!UDPDistributedNS.AnyoneAwake
     
     val ns1 = new MockedUDPDistributedNS(sim)
 //    val ns2 = new MockedUDPDistributedNS(sim)
