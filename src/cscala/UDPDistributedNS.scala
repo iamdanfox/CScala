@@ -5,6 +5,7 @@ import java.net.InetAddress
 import cscala.NameServer.Port
 import cscala.NameServer.TTL
 import ox.CSO._
+import ox.CSO.alt
 import ox.CSO.proc
 import ox.CSO.serve
 import ox.CSO.repeat
@@ -28,6 +29,7 @@ import cscala.UDPDistributedNS._
 class UDPDistributedNS extends NameServer {
 
   val registry = new Registry()
+  val FILL_TIMEOUT = 2000
   
   // set up UDP multicasting =============
   protected def sendMulticast : ?[UDPMessage] with ![UDPMessage] = OneOne[UDPDistributedNS.UDPMessage]
@@ -63,6 +65,9 @@ class UDPDistributedNS extends NameServer {
   /*
    * Distributed protocol implemented below here.
    */
+  val semaphore = new java.util.concurrent.Semaphore(1,true)
+  semaphore.acquire()
+  
   val offerChosen = OneOne[InetAddress]
   
   val fillListener = proc {
@@ -79,39 +84,46 @@ class UDPDistributedNS extends NameServer {
       }
     )
   }
-  
-  val fillOfferController = proc{
-    Thread.sleep(1000);
-    val selected = offerChosen?;
-    //   accept one offer
-    sendMulticast!RequestFill(selected, nameServerAddress)
 
-    // receive a 'Fill' message; discarding other types.
-    serve(
-      recvMulticast ==> {
-        case Fill(contents) => {
-          contents.foreach( r => {
-            val rtnCh = OneOne[Boolean]
-            registry.put!((r.name, r.address, r.port, r.timestamp, r.ttl, rtnCh))
-            rtnCh?;
-          })
-          // once the registry has been filled, start up and start accepting requests.
-          // TODO
+  val fillOfferController = proc {
+    alt(offerChosen ==> { selected =>
+          //   accept one offer
+          sendMulticast ! RequestFill(selected, nameServerAddress)
+    
+          // receive a 'Fill' message; discarding other types.
+          serve(
+            recvMulticast ==> {
+              case Fill(contents) => {
+                contents.foreach(r => {
+                  val rtnCh = OneOne[Boolean]
+                  registry.put ! ((r.name, r.address, r.port, r.timestamp, r.ttl, rtnCh))
+                  rtnCh?;
+                })
+    
+                ox.CSO.Stop
+              }
+              case _ => println("ignore other type")
+            }
+          )
         }
-        case _ => println("ignore other type")
+      | after(FILL_TIMEOUT) ==> {
+        // Give up listening for a Fill message 
       }
     )
     
-
+    // unblock the waitForFill method.
+    semaphore.release()
   }
   
-  val actualRegistry = proc {
-    // wait for the registry to be filled
-    // maybe use semaphores!!!
-    // TODO
+  /**
+   * Blocks until the initial fill is completed.
+   */
+  def waitForFill() = synchronized {
+    semaphore.acquire() // blocks until the 
+    semaphore.release()
   }
   
-  (fillOfferController || fillListener || actualRegistry)()
+  (fillOfferController || fillListener)()
   
   
   
@@ -199,7 +211,7 @@ object UDPDistributedNS {
   /**
    * The selected nameserver sends the contents of the registry across.
    */
-  case class Fill(contents: Set[Register]) extends UDPMessage // TODO include some sort of 'summary' value
+  case class Fill(contents: Set[Register]) extends UDPMessage // TODO include some sort of 'summary' value. Include a `from` attribute.
 
   case class Register(name: String, address: InetAddress, port: NameServer.Port, timestamp: Registry.Timestamp, ttl: NameServer.TTL) extends UDPMessage
 }
