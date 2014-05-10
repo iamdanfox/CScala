@@ -19,11 +19,12 @@ object Registry {
 }
 
 
-class Registry {
+class Registry { // TODO refactor this into a trait & HashRegistry
   private val hashmap = new scala.collection.mutable.HashMap[String, Record]();
   
   val put = ManyOne[(String, InetAddress, Port, Timestamp, TTL, OneOne[Boolean])] 
   val get = ManyOne[(String, OneOne[Option[Record]])] // used to do lookups
+  val getAll = ManyOne[OneOne[Set[(String,Record)]]]
   
   /**
    * Send a unit () to this channel to terminate the Registry.  Note, the thread will only
@@ -66,6 +67,10 @@ class Registry {
               }
               case None => rtn ! None
             }
+      }
+      | getAll ==> { returnCh =>
+        returnCh!hashmap.toSet[(String,Record)]
+        returnCh.close
       }
       | terminate ==> {_ => ox.CSO.stop}
     )

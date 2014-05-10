@@ -2,6 +2,7 @@ package demo
 
 import cscala._
 import java.net._
+import ox.cso.Components
 
 object Tests {
 
@@ -10,15 +11,16 @@ object Tests {
    */
   def main(args: Array[String]): Unit = {
     
-    instantiation()
-    registerForeign()
-    lookupForeign()
-    testLookupAndConnect();
+//    instantiation()
+//    registerForeign()
+//    lookupForeign()
+//    testLookupAndConnect();
+//    
+//    testTTLExpiry()
+//    
+//    testRegistryStopping()
     
-    // TODO test ttl is forcing records to expire correctly
-    testTTLExpiry()
-    
-    testRegistryStopping()
+    testUDPDistributedNS()
     
     println("---")
     println("done. Now run Tests2.scala")
@@ -79,6 +81,21 @@ object Tests {
     val r = new Registry()
     r.terminate!()
     println("10: pass")
+  }
+  
+  private def testUDPDistributedNS(){
+    val sim = new MulticastSimulator()
+    // print every UDP message to the console
+    val index = sim.join()
+    ox.cso.Components.console(sim.memberChans(index)).fork
+    
+    val ns1 = new MockedUDPDistributedNS(sim)
+    println("ns1 initialised")
+    ns1.register("dummy", 8888, NameServer.DEFAULT_TTL) // TODO. why is ns1 saving this?
+    
+    
+    val ns2 = new MockedUDPDistributedNS(sim)
+    
   }
   
   
