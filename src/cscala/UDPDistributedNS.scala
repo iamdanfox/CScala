@@ -100,7 +100,6 @@ class UDPDistributedNS extends NameServer {
   
   
   
-  
 
   multicastAdapter.fork
 
@@ -118,11 +117,22 @@ class UDPDistributedNS extends NameServer {
           println(wasUpdated) // TODO should we do something with this data?
         }
         case Fill(contents) => {
+          // TODO should we only accept unsolicited fills?
           contents.foreach(r => {
               val rtnCh = OneOne[Boolean]
               registry.put ! ((r.name, r.address, r.port, r.timestamp, r.ttl, rtnCh))
               rtnCh?;
           })
+        }
+        case AnyoneAwake => {
+          sendMulticast!OfferFill(this.nameServerAddress)
+        }
+        case RequestFill(from, to) if from == this.nameServerAddress => {
+          val retCh = OneOne[Set[(String,Registry.Record)]]
+          registry.getAll!retCh;
+          val set1 = retCh?;
+          val set2 = set1.map( x => { val (n,(a,p,t,ttl)) = x; UDPDistributedNS.Register(n,a,p,t,ttl) })
+          sendMulticast!Fill(set2)
         }
         case _ => {} // ignore other messages  
       } 

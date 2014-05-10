@@ -91,8 +91,10 @@ object Tests {
     
     val ns1 = new MockedUDPDistributedNS(sim)
     println("ns1 initialised")
+    ns1.register("dummy", 8888, NameServer.DEFAULT_TTL) // TODO. why is ns1 saving this?
     
-//    val ns2 = new MockedUDPDistributedNS(sim)
+    
+    val ns2 = new MockedUDPDistributedNS(sim)
     
   }
   
