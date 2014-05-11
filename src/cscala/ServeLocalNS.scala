@@ -13,7 +13,7 @@ import ox.cso.NetIO
 
 
 /**
- * TCP accessible nameserver.
+ * TCP accessible nameserver. Forks a process for every client connection
  * 
  */
 class ServeLocalNS extends LocalNS {
@@ -67,7 +67,7 @@ class ServeLocalNS extends LocalNS {
 
 
 /**
- * these messages are broadcast over UDP to maintain consistency.
+ * Messages sent between NameServers of TCP
  */ 
 trait InterNSMsg {}
 

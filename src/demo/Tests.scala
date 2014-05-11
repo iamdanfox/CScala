@@ -95,6 +95,8 @@ object Tests {
     
     
     val ns2 = new MockedUDPDistributedNS(sim)
+    println("attempting lookup: "+ ns2.lookupForeign("dummy")) //    breakage here.. should return Some(...)
+
     
   }
   

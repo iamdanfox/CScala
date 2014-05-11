@@ -98,10 +98,10 @@ class UDPDistributedNS extends NameServer {
   
   
   
+  multicastAdapter.fork
   
   
 
-  multicastAdapter.fork
 
   /** 
    * pipes incoming `Register` messages directly into the registry. no notifications. 
