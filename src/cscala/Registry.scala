@@ -72,7 +72,7 @@ class Registry { // TODO refactor this into a trait & HashRegistry
         returnCh!hashmap.toSet[(String,Record)]
         returnCh.close
       }
-      | terminate ==> {_ => ox.CSO.stop}
+      | terminate ==> {_ => throw new ox.cso.Abort}
     )
     put.close; get.close;
   }
