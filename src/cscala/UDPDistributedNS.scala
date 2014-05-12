@@ -12,6 +12,7 @@ import ox.CSO.repeat
 import ox.cso.Datagram.PortToSocket
 import ox.cso.Datagram.SocketToPort
 import ox.cso.NetIO
+import ox.cso.Abort
 import cscala.UDPDistributedNS._
 
 /**
@@ -26,7 +27,7 @@ import cscala.UDPDistributedNS._
  * 
  * BEWARE: Constructor blocks until the protocol has finished or timed out.
  */
-class UDPDistributedNS extends NameServer {
+class UDPDistributedNS(debugname:String) extends NameServer {
 
   val registry = new Registry()
   val FILL_TIMEOUT = 1000
@@ -65,37 +66,30 @@ class UDPDistributedNS extends NameServer {
   
   /*
    * Distributed protocol implemented below here.
-   */
-  
-  val offerChosen = OneOne[InetAddress]
-  
-  val offerListener = proc {
-    sendMulticast!AnyoneAwake;
-    
-    serve(
-      recvMulticast ==> {
-        case OfferFill(from) => offerChosen!from // currently accepts the first offer. TODO, better strategy?
-        case _ => {} // ignore other types.
-      } |
-      after(ANYONE_AWAKE_TIMEOUT) ==> ox.CSO.stop // TODO: what if we keep receiving non `OfferFill` messages?
-    )
-//    println("offerListener done")
-  }
-
-  val fillRequester = proc {
-    alt(offerChosen ==> { selected =>
-          //   accept one offer
-          sendMulticast ! RequestFill(selected, nameServerAddress)
-        }
-      | after(ANYONE_AWAKE_TIMEOUT + FILL_TIMEOUT) ==> {
-//        println("Gave up listening for an OfferFill message")
-      }
-    )
-  }
-  
+   */  
+  println(debugname + ": Constructor start")
   // constructor will only start accepting when both of these are finished
-  (fillRequester || offerListener)()
-  
+
+  sendMulticast ! AnyoneAwake;
+  println(debugname + ": Sent anyoneawake, listening")
+
+  // essential to use serve because recvMulticast might receive non-OfferFill messages
+  // TODO: something broken here!!
+  serve(
+    recvMulticast ==> {
+      case OfferFill(from) => {
+        // currently accepts the first offer. TODO, better strategy?
+        sendMulticast ! RequestFill(from, nameServerAddress)
+        throw new Abort
+      }
+      case _ => {} // ignore other types.
+    } |
+      after(ANYONE_AWAKE_TIMEOUT) ==> {
+        throw new Abort
+      } // TODO: what if we keep receiving non `OfferFill` messages?
+  )
+    
+  println(debugname + ": Protocol done, startin multicastAdapter")
   
   
   multicastAdapter.fork
@@ -112,29 +106,37 @@ class UDPDistributedNS extends NameServer {
         case UDPDistributedNS.Register(name,addr,port,timestamp,ttl) => {
           val returnCh = OneOne[Boolean]
           registry.put ! ((name,addr,port,timestamp,ttl,returnCh))
-          print(" UDPDistributedNS: Receiving '"+name+"', saved=")
-          val wasUpdated = returnCh?; 
-          println(wasUpdated) // TODO should we do something with this data?
+          val wasUpdated = returnCh?; // TODO should we do something with this data?
+          println(debugname + ": Incoming REGISTER ('"+name+"'), saved="+wasUpdated)
         }
         case Fill(contents) => {
           // TODO should we only accept unsolicited fills?
+          print(debugname + ": Incoming FILL: ")
           contents.foreach(r => {
               val rtnCh = OneOne[Boolean]
               registry.put ! ((r.name, r.address, r.port, r.timestamp, r.ttl, rtnCh))
-              rtnCh?;
+              print(rtnCh?);
           })
+          println()
+          val retCh = OneOne[Set[(String,Registry.Record)]]
+          registry.getAll!retCh
+          println(retCh?)
         }
         case AnyoneAwake => {
+          println(debugname + ": Incoming AnyoneAwake")
           sendMulticast!OfferFill(this.nameServerAddress)
         }
-        case RequestFill(from, to) if from == this.nameServerAddress => {
+        case RequestFill(filler, dest) if filler == this.nameServerAddress => {
+          println(debugname + ": Incoming AnyoneAwake")   
           val retCh = OneOne[Set[(String,Registry.Record)]]
           registry.getAll!retCh;
           val set1 = retCh?;
           val set2 = set1.map( x => { val (n,(a,p,t,ttl)) = x; UDPDistributedNS.Register(n,a,p,t,ttl) })
           sendMulticast!Fill(set2)
         }
-        case _ => {} // ignore other messages  
+        // ignore other messages
+        case OfferFill(_) => {}
+        case _ => {}   
       } 
     }
     recvMulticast.close
@@ -164,7 +166,7 @@ class UDPDistributedNS extends NameServer {
     // every time an entry is successfully inserted into the registry, we must notify other.
     if (rtnCh?) {
       // successful insertion, so notify other NameServers
-      println(" UDPDistributedNS: Sending '"+name+"'")
+      println(debugname +": Sending '"+name+"'")
       sendMulticast ! UDPDistributedNS.Register(name, address, port, timestamp, ttl) // `Register` member of `Msg` trait
       return true
     } else {
@@ -200,7 +202,7 @@ object UDPDistributedNS {
   /**
    * The selected nameserver sends the contents of the registry across.
    */
-  case class Fill(contents: Set[Register]) extends UDPMessage // TODO include some sort of 'summary' value. Include a `from` attribute.
+  case class Fill(contents: Set[Register]) extends UDPMessage // TODO include some sort of 'summary' value. Include a `from` attribute. Maybe include a TO?
 
   case class Register(name: String, address: InetAddress, port: NameServer.Port, timestamp: Registry.Timestamp, ttl: NameServer.TTL) extends UDPMessage
 }

@@ -87,15 +87,17 @@ object Tests {
     val sim = new MulticastSimulator()
     // print every UDP message to the console
     val index = sim.join()
-    ox.cso.Components.console(sim.memberChans(index)).fork
+    (ox.CSO.proc { ox.CSO.repeat { Console.println("[UDP] " + (sim.memberChans(index)?)) }}).fork
     
-    val ns1 = new MockedUDPDistributedNS(sim)
-    println("ns1 initialised")
+    val ns1 = new MockedUDPDistributedNS(sim, "1")
+    println("[Tests] ns1 initialised")
     ns1.register("dummy", 8888, NameServer.DEFAULT_TTL) // TODO. why is ns1 saving this?
     
+    Thread.sleep(3000)
     
-    val ns2 = new MockedUDPDistributedNS(sim)
-    println("attempting lookup: "+ ns2.lookupForeign("dummy")) //    breakage here.. should return Some(...)
+    println("[Tests] starting second one")
+    val ns2 = new MockedUDPDistributedNS(sim, "2")
+    println("[Tests] attempting lookup: "+ ns2.lookupForeign("dummy")) //    breakage here.. should return Some(...)
 
     
   }

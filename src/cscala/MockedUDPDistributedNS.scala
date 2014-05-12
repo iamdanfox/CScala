@@ -4,7 +4,7 @@ import ox.CSO._
 /**
  * A version of the UDPDistributedNS that doesn't actually attempt to communicate over
  */
-class MockedUDPDistributedNS(simulator:MulticastSimulator) extends UDPDistributedNS {
+class MockedUDPDistributedNS(simulator:MulticastSimulator, debugname:String) extends UDPDistributedNS(debugname) {
 
   val index = simulator.join()
   
