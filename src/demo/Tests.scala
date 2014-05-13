@@ -20,7 +20,8 @@ object Tests {
 //    
 //    testRegistryStopping()
     
-    testUDPDistributedNS()
+    testSingleUDPDistributedNS()
+//    testUDPDistributedNS()
     
     println("---")
     println("done. Now run Tests2.scala")
@@ -81,6 +82,16 @@ object Tests {
     val r = new Registry()
     r.terminate!()
     println("10: pass")
+  }
+  
+  private def testSingleUDPDistributedNS(){
+    val sim = new MulticastSimulator()
+    // print every UDP message to the console
+    val index = sim.join()
+    (ox.CSO.proc { ox.CSO.repeat { Console.println("[UDP] " + (sim.memberChans(index)?)) }}).fork
+    
+    val ns1 = new MockedUDPDistributedNS(sim, "1")
+    println("[Tests] ns1 initialised")
   }
   
   private def testUDPDistributedNS(){

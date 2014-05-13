@@ -123,11 +123,11 @@ class UDPDistributedNS(debugname:String) extends NameServer {
           println(retCh?)
         }
         case AnyoneAwake => {
-          println(debugname + ": Incoming AnyoneAwake")
+          println(debugname + ": Incoming AnyoneAwake, sending OfferFill")
           sendMulticast!OfferFill(this.nameServerAddress)
         }
         case RequestFill(filler, dest) if filler == this.nameServerAddress => {
-          println(debugname + ": Incoming AnyoneAwake")   
+          println(debugname + ": Incoming AnyoneAwake, sending Fill")   
           val retCh = OneOne[Set[(String,Registry.Record)]]
           registry.getAll!retCh;
           val set1 = retCh?;
@@ -135,7 +135,9 @@ class UDPDistributedNS(debugname:String) extends NameServer {
           sendMulticast!Fill(set2)
         }
         // ignore other messages
-        case OfferFill(_) => {}
+        case OfferFill(_) => {
+          println(debugname + ": Incoming OfferFill (ignoring)")
+        }
         case _ => {}   
       } 
     }
