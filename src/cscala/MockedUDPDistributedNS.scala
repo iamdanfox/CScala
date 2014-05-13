@@ -44,10 +44,11 @@ class MulticastSimulator() {
   private def multiplexer = proc {
     repeat {
       val v = sendMessage?;
-//      println("Multiplexing message: "+v)
-      memberChans.foreach(c => c ! v);
+      memberChans.take(poolSize).foreach(c => c ! v);
     }
   }
   
   multiplexer.fork
+  
+  
 }

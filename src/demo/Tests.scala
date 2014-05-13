@@ -20,8 +20,9 @@ object Tests {
 //    
 //    testRegistryStopping()
     
-    testSingleUDPDistributedNS()
-//    testUDPDistributedNS()
+//    printlnsSingleUDPDistributedNS() 
+//      testMulticastSimulator()
+    testUDPDistributedNS()
     
     println("---")
     println("done. Now run Tests2.scala")
@@ -84,7 +85,7 @@ object Tests {
     println("10: pass")
   }
   
-  private def testSingleUDPDistributedNS(){
+  private def printlnsSingleUDPDistributedNS(){
     val sim = new MulticastSimulator()
     // print every UDP message to the console
     val index = sim.join()
@@ -92,6 +93,16 @@ object Tests {
     
     val ns1 = new MockedUDPDistributedNS(sim, "1")
     println("[Tests] ns1 initialised")
+  }
+  
+  private def testMulticastSimulator(){
+    val sim = new MulticastSimulator();
+    val i1 = sim.join()
+    sim.sendMessage!UDPDistributedNS.AnyoneAwake
+    println("11: "+ wrap(UDPDistributedNS.AnyoneAwake == (sim.memberChans(i1)?)))
+    val i2 = sim.join()
+    sim.sendMessage!UDPDistributedNS.RequestFill(null,null)
+    println("12: "+ wrap(UDPDistributedNS.RequestFill(null,null) == (sim.memberChans(i2)?)))
   }
   
   private def testUDPDistributedNS(){
