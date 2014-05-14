@@ -105,6 +105,9 @@ object Tests {
     println("12: "+ wrap(UDPDistributedNS.RequestFill(null,null) == (sim.memberChans(i2)?)))
   }
   
+  /**
+   * This method is intended to test that a newly started up nameserver can be bootstrapped correctly.
+   */
   private def testUDPDistributedNS(){
     val sim = new MulticastSimulator()
     // print every UDP message to the console
@@ -112,16 +115,13 @@ object Tests {
     (ox.CSO.proc { ox.CSO.repeat { Console.println("[UDP] " + (sim.memberChans(index)?)) }}).fork
     
     val ns1 = new MockedUDPDistributedNS(sim, "1")
-    println("[Tests] ns1 initialised")
     ns1.register("dummy", 8888, NameServer.DEFAULT_TTL) // TODO. why is ns1 saving this?
     
     Thread.sleep(3000)
     
-    println("[Tests] starting second one")
     val ns2 = new MockedUDPDistributedNS(sim, "2")
-    println("[Tests] attempting lookup: "+ ns2.lookupForeign("dummy")) //    breakage here.. should return Some(...)
 
-    
+    println("13: " + wrap(ns2.lookupForeign("dummy")==Some((ns1.nameServerAddress, 8888))))
   }
   
   

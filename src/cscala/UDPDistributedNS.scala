@@ -27,7 +27,7 @@ import cscala.UDPDistributedNS._
  * 
  * BEWARE: Constructor blocks until the protocol has finished or timed out.
  */
-class UDPDistributedNS(debugname:String) extends NameServer {
+class UDPDistributedNS(debugname:String="UDPDistributedNS") extends NameServer {
 
   val registry = new Registry()
   val FILL_TIMEOUT = 1000
@@ -47,7 +47,7 @@ class UDPDistributedNS(debugname:String) extends NameServer {
     //  socket.setSoTimeout() // no idea what a normal timeout is
 
     PortToSocket(sendMulticast, socket, socketAddr) {
-      println("UDPDistributedNS PortToSocket terminated")
+      debug("UDPDistributedNS PortToSocket terminated")
       if (!socket.isClosed()) socket.close()
       sendMulticast.close
     }.withName("UDPDistributedNS Multicast PortToSocket").fork
@@ -67,11 +67,11 @@ class UDPDistributedNS(debugname:String) extends NameServer {
   /*
    * Distributed protocol implemented below here.
    */  
-  println(debugname + ": Constructor start")
+  debug(debugname + ": Constructor start")
   // constructor will only start accepting when both of these are finished
 
   sendMulticast ! AnyoneAwake;
-  println(debugname + ": Sent anyoneawake, listening")
+  debug(debugname + ": Sent anyoneawake, listening")
 
   // essential to use serve because recvMulticast might receive non-OfferFill messages
   // TODO: something broken here!!
@@ -86,10 +86,10 @@ class UDPDistributedNS(debugname:String) extends NameServer {
     } |
       after(ANYONE_AWAKE_TIMEOUT) ==> {
         throw new Abort
-      } // TODO: what if we keep receiving non `OfferFill` messages?
+      } // TODO: what if we keep receiving non `OfferFill` messages? potential for Livelock here?
   )
     
-  println(debugname + ": Protocol done, startin multicastAdapter")
+  debug(debugname + ": Protocol done, starting multicastAdapter")
   
   
   multicastAdapter.fork
@@ -107,7 +107,7 @@ class UDPDistributedNS(debugname:String) extends NameServer {
           val returnCh = OneOne[Boolean]
           registry.put ! ((name,addr,port,timestamp,ttl,returnCh))
           val wasUpdated = returnCh?; // TODO should we do something with this data?
-          println(debugname + ": Incoming REGISTER ('"+name+"'), saved="+wasUpdated)
+          debug(debugname + ": Incoming REGISTER ('"+name+"'), saved="+wasUpdated)
         }
         case Fill(contents) => {
           // TODO should we only accept unsolicited fills?
@@ -117,17 +117,17 @@ class UDPDistributedNS(debugname:String) extends NameServer {
               registry.put ! ((r.name, r.address, r.port, r.timestamp, r.ttl, rtnCh))
               print(rtnCh?);
           })
-          println()
+          debug()
           val retCh = OneOne[Set[(String,Registry.Record)]]
           registry.getAll!retCh
-          println(retCh?)
+          debug(retCh?)
         }
         case AnyoneAwake => {
-          println(debugname + ": Incoming AnyoneAwake, sending OfferFill")
+          debug(debugname + ": Incoming AnyoneAwake, sending OfferFill")
           sendMulticast!OfferFill(this.nameServerAddress)
         }
         case RequestFill(filler, dest) if filler == this.nameServerAddress => {
-          println(debugname + ": Incoming AnyoneAwake, sending Fill")   
+          debug(debugname + ": Incoming RequestFill, sending Fill")   
           val retCh = OneOne[Set[(String,Registry.Record)]]
           registry.getAll!retCh;
           val set1 = retCh?;
@@ -136,7 +136,7 @@ class UDPDistributedNS(debugname:String) extends NameServer {
         }
         // ignore other messages
         case OfferFill(_) => {
-          println(debugname + ": Incoming OfferFill (ignoring)")
+          debug(debugname + ": Incoming OfferFill (ignoring)")
         }
         case _ => {}   
       } 
@@ -168,13 +168,15 @@ class UDPDistributedNS(debugname:String) extends NameServer {
     // every time an entry is successfully inserted into the registry, we must notify other.
     if (rtnCh?) {
       // successful insertion, so notify other NameServers
-      println(debugname +": Sending '"+name+"'")
+      debug(debugname +": Sending '"+name+"'")
       sendMulticast ! UDPDistributedNS.Register(name, address, port, timestamp, ttl) // `Register` member of `Msg` trait
       return true
     } else {
       return false
     }
   }
+  
+  def debug(x:Any) = Console.println(x:Any)
 }
 
 object UDPDistributedNS {
