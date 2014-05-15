@@ -127,12 +127,16 @@ class UDPDistributedNS(debugname:String="UDPDistributedNS") extends NameServer {
           sendMulticast!OfferFill(this.nameServerAddress)
         }
         case RequestFill(filler, dest) if filler == this.nameServerAddress => {
-          debug(debugname + ": Incoming RequestFill, sending Fill")   
           val retCh = OneOne[Set[(String,Registry.Record)]]
           registry.getAll!retCh;
           val set1 = retCh?;
-          val set2 = set1.map( x => { val (n,(a,p,t,ttl)) = x; UDPDistributedNS.Register(n,a,p,t,ttl) })
-          sendMulticast!Fill(set2)
+          if (set1.size > 0 ){
+              debug(debugname + ": Incoming RequestFill, sending Fill")   
+              val set2 = set1.map( x => { val (n,(a,p,t,ttl)) = x; UDPDistributedNS.Register(n,a,p,t,ttl) })
+              sendMulticast!Fill(set2)
+          } else {
+            // ignore the request if we have nothing to offer!
+          }
         }
         // ignore other messages
         case OfferFill(_) => {

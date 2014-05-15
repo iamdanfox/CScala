@@ -22,7 +22,8 @@ object Tests {
     
 //    printlnsSingleUDPDistributedNS() 
 //      testMulticastSimulator()
-    testUDPDistributedNS()
+//    testUDPDistributedNS()
+    testSharing()
     
     println("---")
     println("done. Now run Tests2.scala")
@@ -122,6 +123,14 @@ object Tests {
     val ns2 = new MockedUDPDistributedNS(sim, "2")
 
     println("13: " + wrap(ns2.lookupForeign("dummy")==Some((ns1.nameServerAddress, 8888))))
+  }
+  
+  private def testSharing(){
+    val sim = new MulticastSimulator()
+    val index = sim.join()
+    val ns1 = new MockedUDPDistributedNS(sim, "1")
+    val ns2 = new MockedUDPDistributedNS(sim, "2")
+    Thread.sleep(3000)
   }
   
   
