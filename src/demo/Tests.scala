@@ -127,10 +127,11 @@ object Tests {
   
   private def testSharing(){
     val sim = new MulticastSimulator()
-    val index = sim.join()
     val ns1 = new MockedUDPDistributedNS(sim, "1")
     val ns2 = new MockedUDPDistributedNS(sim, "2")
-    Thread.sleep(3000)
+    ns1.register("dummy", 8888, NameServer.DEFAULT_TTL)
+    Thread.sleep(100)
+    println("14: "+wrap(ns2.lookupForeign("dummy")==Some((ns1.nameServerAddress, 8888))))
   }
   
   
