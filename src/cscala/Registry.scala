@@ -17,6 +17,9 @@ object Registry {
 }
 
 
+/**
+ * Essentially a concurrently accessible hashmap with timestamp and TTL fields.
+ */
 class Registry[T] { // TODO refactor this into a trait & HashRegistry
   type Record = (T, Timestamp, TTL)
   
@@ -31,8 +34,6 @@ class Registry[T] { // TODO refactor this into a trait & HashRegistry
    * terminate when the threadpool is all done.
    */
   val terminate = OneOne[Unit]
-  
-  guardProc.fork
   
   /**
    * Registry protects the hashmap, ensuring no race conditions
@@ -73,6 +74,8 @@ class Registry[T] { // TODO refactor this into a trait & HashRegistry
       }
       | terminate ==> {_ => throw new ox.cso.Abort}
     )
-    put.close; get.close; getAll.close; terminate.close;
+    put.close; get.close; getAll.close; // terminate.close;
   }
+  
+  guardProc.fork
 }

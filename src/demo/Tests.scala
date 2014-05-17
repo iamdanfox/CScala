@@ -11,19 +11,15 @@ object Tests {
    */
   def main(args: Array[String]): Unit = {
     
-//    instantiation()
-//    registerForeign()
-//    lookupForeign()
-//    testLookupAndConnect();
-//    
-//    testTTLExpiry()
-//    
-//    testRegistryStopping()
+    instantiation()
+    registerForeign()
+    lookupForeign()
+    testLookupAndConnect();
     
 //    printlnsSingleUDPDistributedNS() 
 //      testMulticastSimulator()
 //    testUDPDistributedNS()
-    testSharing()
+//    testSharing()
     
     println("---")
     println("done. Now run Tests2.scala")
@@ -32,7 +28,6 @@ object Tests {
   private def instantiation() = {
     println("1: "+ wrap(!NS.localRunning()) )
     // expecting: NS() starting a new local NameServer
-    print("    ")
     NS() 
     println("2: "+ wrap(NS.localRunning()) )
     // expecting: NS() Already running locally
@@ -65,26 +60,6 @@ object Tests {
     }
   }
   
-  private def testTTLExpiry(){
-    val l =  InetAddress.getByName("localhost")
-    NS().registerForeign("ExpireIn0.5Seconds", l, 999, 500);
-    println("7: "+wrap(NS().lookupForeign("ExpireIn0.5Seconds")==Some(l,999)) +"...")
-    Thread.sleep(500)
-    println("8: "+wrap(NS().lookupForeign("ExpireIn0.5Seconds")==None) )
-    
-    NS().registerForeign("DeadAlready", l, 999, NameServer.DEFAULT_TTL) 
-    NS().registerForeign("DeadAlready", l, 999, 0) // Overwrite TTL to 0 to force expiry
-    println("9: "+wrap(NS().lookupForeign("DeadAlready")==None))
-    
-    
-    
-  }
-  
-  private def testRegistryStopping(){
-    val r = new Registry()
-    r.terminate!()
-    println("10: pass")
-  }
   
   private def printlnsSingleUDPDistributedNS(){
     val sim = new MulticastSimulator()
