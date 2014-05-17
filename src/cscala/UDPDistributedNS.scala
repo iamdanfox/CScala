@@ -29,7 +29,7 @@ import cscala.UDPDistributedNS._
  */
 class UDPDistributedNS(debugname:String="UDPDistributedNS") extends NameServer {
 
-  val registry = new Registry()
+  val registry = new Registry[(InetAddress, Port)]()
   val FILL_TIMEOUT = 1000
   val ANYONE_AWAKE_TIMEOUT = 1000
   
@@ -105,7 +105,7 @@ class UDPDistributedNS(debugname:String="UDPDistributedNS") extends NameServer {
       recvMulticast? {
         case UDPDistributedNS.Register(name,addr,port,timestamp,ttl) => {
           val returnCh = OneOne[Boolean]
-          registry.put ! ((name,addr,port,timestamp,ttl,returnCh))
+          registry.put ! ((name,((addr,port),timestamp,ttl),returnCh))
           val wasUpdated = returnCh?; // TODO should we do something with this data?
           debug(debugname + ": Incoming REGISTER ('"+name+"'), saved="+wasUpdated)
         }
@@ -114,11 +114,11 @@ class UDPDistributedNS(debugname:String="UDPDistributedNS") extends NameServer {
           print(debugname + ": Incoming FILL: ")
           contents.foreach(r => {
               val rtnCh = OneOne[Boolean]
-              registry.put ! ((r.name, r.address, r.port, r.timestamp, r.ttl, rtnCh))
+              registry.put ! ((r.name, ((r.address, r.port), r.timestamp, r.ttl), rtnCh))
               print(rtnCh?);
           })
           debug()
-          val retCh = OneOne[Set[(String,Registry.Record)]]
+          val retCh = OneOne[Set[(String,registry.Record)]]
           registry.getAll!retCh
           debug(retCh?)
         }
@@ -127,12 +127,12 @@ class UDPDistributedNS(debugname:String="UDPDistributedNS") extends NameServer {
           sendMulticast!OfferFill(this.nameServerAddress)
         }
         case RequestFill(filler, dest) if filler == this.nameServerAddress => {
-          val retCh = OneOne[Set[(String,Registry.Record)]]
+          val retCh = OneOne[Set[(String,registry.Record)]]
           registry.getAll!retCh;
           val set1 = retCh?;
           if (set1.size > 0 ){
               debug(debugname + ": Incoming RequestFill, sending Fill")   
-              val set2 = set1.map( x => { val (n,(a,p,t,ttl)) = x; UDPDistributedNS.Register(n,a,p,t,ttl) })
+              val set2 = set1.map( x => { val (n,((a,p),t,ttl)) = x; UDPDistributedNS.Register(n,a,p,t,ttl) })
               sendMulticast!Fill(set2)
           } else {
             // ignore the request if we have nothing to offer!
@@ -152,10 +152,10 @@ class UDPDistributedNS(debugname:String="UDPDistributedNS") extends NameServer {
    * Looks up the name in the registry
    */
   override def lookupForeign(name: String): Option[(InetAddress, Port)] = {
-    val rtnCh = OneOne[Option[Registry.Record]]
+    val rtnCh = OneOne[Option[registry.Record]]
     registry.get ! ((name, rtnCh))
     return (rtnCh?) match {
-      case Some((addr,port, timestamp, ttl)) => Some (addr,port) // slightly less data returned
+      case Some((payload, timestamp, ttl)) => Some(payload) // slightly less data returned
       case None => None
     }
   }
@@ -167,7 +167,7 @@ class UDPDistributedNS(debugname:String="UDPDistributedNS") extends NameServer {
     // attempt insertion
     val rtnCh = OneOne[Boolean]
     val timestamp = System.currentTimeMillis()
-    registry.put ! ((name, address, port, timestamp, ttl, rtnCh))
+    registry.put ! ((name, ((address, port), timestamp, ttl), rtnCh))
 
     // every time an entry is successfully inserted into the registry, we must notify other.
     if (rtnCh?) {

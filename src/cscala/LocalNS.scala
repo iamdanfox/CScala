@@ -13,7 +13,7 @@ import cscala.Registry._
 
 class LocalNS extends NameServer {
   
-  protected val registry = new Registry()
+  protected val registry = new Registry[(InetAddress, Port)]()
   
   /**
    * Add a new mapping from String -> (InetAddress, Port)
@@ -21,7 +21,7 @@ class LocalNS extends NameServer {
   override def registerForeign(name: String, address: InetAddress, port: Port, ttl: TTL): Boolean = {
     val rtnCh = OneOne[Boolean]
     val timestamp = System.currentTimeMillis()
-    registry.put ! ((name, address, port, timestamp, ttl, rtnCh))
+    registry.put ! ((name, ((address, port), timestamp, ttl), rtnCh))
     return rtnCh?
   }
 
@@ -29,10 +29,10 @@ class LocalNS extends NameServer {
    * Looks up the name in the registry
    */
   override def lookupForeign(name: String): Option[(InetAddress, Port)] = {
-    val rtnCh = OneOne[Option[Record]]
+    val rtnCh = OneOne[Option[registry.Record]]
     registry.get ! ((name, rtnCh))
     return (rtnCh?) match {
-      case Some((addr,port, timestamp, ttl)) => Some (addr,port) // slightly less data returned
+      case Some((payload, timestamp, ttl)) => Some(payload) // slightly less data returned
       case None => None
     }
   }
