@@ -5,17 +5,14 @@ import ox.cso.Connection._
 
 class FullyLocalNS {
   
-  private val registry = new collection.mutable.HashMap[String,(Client[Any,Any] => Unit, Registry.Timestamp, NameServer.TTL)]()
+//  private val registry = new collection.mutable.HashMap[String,(Client[Any,Any] => Unit, Registry.Timestamp, NameServer.TTL)]()
+  private val registry = new Registry[Client[Any,Any] => Unit]()
 
   def register[Req, Resp](name: String, ttl: NameServer.TTL, handleClient: (Client[Req, Resp]) => Unit): Boolean = {
-    registry.get(name) match {
-      case Some((handlefn, timestamp, ttl)) if timestamp+ttl > System.currentTimeMillis() => {
-        
-      }
-      case None => {
-         return false
-      }
-    }
+    
+    val ret = new OneOne[Boolean]
+    registry.put!((name, (handleClient.asInstanceOf[Client[Any,Any] => Unit], System.currentTimeMillis(), ttl), ret))
+    return (ret?)
   }  
   
   /**
@@ -32,9 +29,11 @@ class FullyLocalNS {
    * Tentative lookup and connect
    */
   def lookup2[Req,Resp](name: String) : Option[Server[Req,Resp]] = synchronized {
-    registry.get(name) match {
+    val ret = new OneOne[Option[registry.Record]]
+    registry.get!((name, ret))
+    ret? match {
       case Some(handlefn) => {
-        val handleFunction = handlefn.asInstanceOf[Client[Req,Resp] => Unit]
+        val handleFunction = handlefn._1.asInstanceOf[Client[Req,Resp] => Unit]
         // 'connect' to the server
         val conn = ox.cso.Connection.OneOne[Req,Resp]
         proc { handleFunction(conn.client) }.fork 
