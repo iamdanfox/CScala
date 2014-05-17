@@ -31,7 +31,7 @@ class ServeLocalNS extends LocalNS {
       client? match {
         case Register(name, addr, port, timestamp, ttl) =>
           val respCh = OneOne[Boolean]
-          registry.put ! ((name, (addr, port, timestamp, ttl), respCh))
+          registry.put ! ((name, ((addr, port), timestamp, ttl), respCh))
           client ! (respCh? match {
             case true => {
               println("Added " + name + " to the registry")
@@ -43,7 +43,7 @@ class ServeLocalNS extends LocalNS {
           val respCh = OneOne[Option[Registry.Record]]
           registry.get ! ((name, respCh))
           client ! (respCh? match {
-            case Some((addr, port, timestamp, ttl)) => Success(name, addr, port)
+            case Some(((addr, port), timestamp, ttl)) => Success(name, addr, port)
             case None => Failure(name)
           })
       }
@@ -59,7 +59,7 @@ class ServeLocalNS extends LocalNS {
     // attempt insertion
     val rtnCh = OneOne[Boolean]
     val timestamp = System.currentTimeMillis()
-    registry.put ! ((name, (address, port, timestamp, ttl), rtnCh))
+    registry.put ! ((name, ((address, port), timestamp, ttl), rtnCh))
 
     return (rtnCh?)
   }

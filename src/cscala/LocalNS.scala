@@ -21,7 +21,7 @@ class LocalNS extends NameServer {
   override def registerForeign(name: String, address: InetAddress, port: Port, ttl: TTL): Boolean = {
     val rtnCh = OneOne[Boolean]
     val timestamp = System.currentTimeMillis()
-    registry.put ! ((name, (address, port, timestamp, ttl), rtnCh))
+    registry.put ! ((name, ((address, port), timestamp, ttl), rtnCh))
     return rtnCh?
   }
 
@@ -32,7 +32,7 @@ class LocalNS extends NameServer {
     val rtnCh = OneOne[Option[Record]]
     registry.get ! ((name, rtnCh))
     return (rtnCh?) match {
-      case Some((addr,port, timestamp, ttl)) => Some (addr,port) // slightly less data returned
+      case Some(((addr,port), timestamp, ttl)) => Some (addr,port) // slightly less data returned
       case None => None
     }
   }
