@@ -13,13 +13,14 @@ import cscala.Registry._
 
 
 object Registry {
-  // IP Address, Port, Timestamp, TTL
-  type Record = ((InetAddress, Port), Timestamp, TTL)
   type Timestamp = Long
 }
 
 
 class Registry { // TODO refactor this into a trait & HashRegistry
+  // IP Address, Port, Timestamp, TTL
+  type Record = ((InetAddress, Port), Timestamp, TTL)
+  
   private val hashmap = new scala.collection.mutable.HashMap[String, Record]();
   
   val put = ManyOne[(String, Record, OneOne[Boolean])] 
@@ -43,13 +44,13 @@ class Registry { // TODO refactor this into a trait & HashRegistry
     // allows two possible operations. PUT (on toRegistry) and GET (on fromRegistry)
     serve(
       put ==> {
-        case (name, ((addr, port), newTimestamp, ttl), rtn) =>
+        case (name, (payload, newTimestamp, ttl), rtn) =>
           // only accept record if the timestamp is more recent
           rtn ! (hashmap.get(name) match {
             case Some((_, existingTimestamp, _)) if newTimestamp < existingTimestamp =>
               false // no update
             case _ =>
-              hashmap.put(name, ((addr, port), newTimestamp, ttl)) // new or updated record.
+              hashmap.put(name, (payload, newTimestamp, ttl)) // new or updated record.
               true
           })
       }
@@ -57,9 +58,9 @@ class Registry { // TODO refactor this into a trait & HashRegistry
         case (n, rtn) =>
             // only return valid records
             hashmap.get(n) match {
-              case Some(((addr, port), timestamp, ttl)) => {
+              case Some((payload, timestamp, ttl)) => {
                 if (timestamp + ttl > System.currentTimeMillis()) {
-                  rtn ! Some((addr, port), timestamp, ttl) // slightly less data returned
+                  rtn ! Some(payload, timestamp, ttl)
                 } else {
                   hashmap.remove(n) // expired record
                   rtn ! None

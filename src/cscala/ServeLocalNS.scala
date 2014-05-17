@@ -40,7 +40,7 @@ class ServeLocalNS extends LocalNS {
             case false => Failure(name)
           })
         case Lookup(name) =>
-          val respCh = OneOne[Option[Registry.Record]]
+          val respCh = OneOne[Option[registry.Record]]
           registry.get ! ((name, respCh))
           client ! (respCh? match {
             case Some(((addr, port), timestamp, ttl)) => Success(name, addr, port)

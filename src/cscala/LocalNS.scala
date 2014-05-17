@@ -29,10 +29,10 @@ class LocalNS extends NameServer {
    * Looks up the name in the registry
    */
   override def lookupForeign(name: String): Option[(InetAddress, Port)] = {
-    val rtnCh = OneOne[Option[Record]]
+    val rtnCh = OneOne[Option[registry.Record]]
     registry.get ! ((name, rtnCh))
     return (rtnCh?) match {
-      case Some(((addr,port), timestamp, ttl)) => Some (addr,port) // slightly less data returned
+      case Some((payload, timestamp, ttl)) => Some(payload) // slightly less data returned
       case None => None
     }
   }

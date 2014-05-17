@@ -118,7 +118,7 @@ class UDPDistributedNS(debugname:String="UDPDistributedNS") extends NameServer {
               print(rtnCh?);
           })
           debug()
-          val retCh = OneOne[Set[(String,Registry.Record)]]
+          val retCh = OneOne[Set[(String,registry.Record)]]
           registry.getAll!retCh
           debug(retCh?)
         }
@@ -127,7 +127,7 @@ class UDPDistributedNS(debugname:String="UDPDistributedNS") extends NameServer {
           sendMulticast!OfferFill(this.nameServerAddress)
         }
         case RequestFill(filler, dest) if filler == this.nameServerAddress => {
-          val retCh = OneOne[Set[(String,Registry.Record)]]
+          val retCh = OneOne[Set[(String,registry.Record)]]
           registry.getAll!retCh;
           val set1 = retCh?;
           if (set1.size > 0 ){
@@ -152,10 +152,10 @@ class UDPDistributedNS(debugname:String="UDPDistributedNS") extends NameServer {
    * Looks up the name in the registry
    */
   override def lookupForeign(name: String): Option[(InetAddress, Port)] = {
-    val rtnCh = OneOne[Option[Registry.Record]]
+    val rtnCh = OneOne[Option[registry.Record]]
     registry.get ! ((name, rtnCh))
     return (rtnCh?) match {
-      case Some(((addr,port), timestamp, ttl)) => Some (addr,port) // slightly less data returned
+      case Some((payload, timestamp, ttl)) => Some(payload) // slightly less data returned
       case None => None
     }
   }
