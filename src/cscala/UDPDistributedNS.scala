@@ -105,7 +105,7 @@ class UDPDistributedNS(debugname:String="UDPDistributedNS") extends NameServer {
       recvMulticast? {
         case UDPDistributedNS.Register(name,addr,port,timestamp,ttl) => {
           val returnCh = OneOne[Boolean]
-          registry.put ! ((name,addr,port,timestamp,ttl,returnCh))
+          registry.put ! ((name,(addr,port,timestamp,ttl),returnCh))
           val wasUpdated = returnCh?; // TODO should we do something with this data?
           debug(debugname + ": Incoming REGISTER ('"+name+"'), saved="+wasUpdated)
         }
@@ -114,7 +114,7 @@ class UDPDistributedNS(debugname:String="UDPDistributedNS") extends NameServer {
           print(debugname + ": Incoming FILL: ")
           contents.foreach(r => {
               val rtnCh = OneOne[Boolean]
-              registry.put ! ((r.name, r.address, r.port, r.timestamp, r.ttl, rtnCh))
+              registry.put ! ((r.name, (r.address, r.port, r.timestamp, r.ttl), rtnCh))
               print(rtnCh?);
           })
           debug()
@@ -167,7 +167,7 @@ class UDPDistributedNS(debugname:String="UDPDistributedNS") extends NameServer {
     // attempt insertion
     val rtnCh = OneOne[Boolean]
     val timestamp = System.currentTimeMillis()
-    registry.put ! ((name, address, port, timestamp, ttl, rtnCh))
+    registry.put ! ((name, (address, port, timestamp, ttl), rtnCh))
 
     // every time an entry is successfully inserted into the registry, we must notify other.
     if (rtnCh?) {

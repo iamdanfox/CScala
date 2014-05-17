@@ -22,7 +22,7 @@ object Registry {
 class Registry { // TODO refactor this into a trait & HashRegistry
   private val hashmap = new scala.collection.mutable.HashMap[String, Record]();
   
-  val put = ManyOne[(String, InetAddress, Port, Timestamp, TTL, OneOne[Boolean])] 
+  val put = ManyOne[(String, Record, OneOne[Boolean])] 
   val get = ManyOne[(String, OneOne[Option[Record]])] // used to do lookups
   val getAll = ManyOne[OneOne[Set[(String,Record)]]]
   
@@ -43,7 +43,7 @@ class Registry { // TODO refactor this into a trait & HashRegistry
     // allows two possible operations. PUT (on toRegistry) and GET (on fromRegistry)
     serve(
       put ==> {
-        case (name, addr, port, newTimestamp, ttl, rtn) =>
+        case (name, (addr, port, newTimestamp, ttl), rtn) =>
           // only accept record if the timestamp is more recent
           rtn ! (hashmap.get(name) match {
             case Some((_, _, existingTimestamp, _)) if newTimestamp < existingTimestamp =>
