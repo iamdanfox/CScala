@@ -13,7 +13,7 @@ import cscala.Registry._
 
 class LocalNS extends NameServer {
   
-  protected val registry = new Registry()
+  protected val registry = new Registry[(InetAddress, Port)]()
   
   /**
    * Add a new mapping from String -> (InetAddress, Port)

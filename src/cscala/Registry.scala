@@ -17,9 +17,8 @@ object Registry {
 }
 
 
-class Registry { // TODO refactor this into a trait & HashRegistry
-  // IP Address, Port, Timestamp, TTL
-  type Record = ((InetAddress, Port), Timestamp, TTL)
+class Registry[T] { // TODO refactor this into a trait & HashRegistry
+  type Record = (T, Timestamp, TTL)
   
   private val hashmap = new scala.collection.mutable.HashMap[String, Record]();
   
@@ -33,15 +32,14 @@ class Registry { // TODO refactor this into a trait & HashRegistry
    */
   val terminate = OneOne[Unit]
   
-  guardProc().fork
+  guardProc.fork
   
   /**
    * Registry protects the hashmap, ensuring no race conditions
    * Maintains the TTL invariant. Only returns valid records.
    * Only accepts records with more recent timestamps.
    */
-  private def guardProc() = proc { // started when class is constructed
-    // allows two possible operations. PUT (on toRegistry) and GET (on fromRegistry)
+  private val guardProc = proc { // started when class is constructed
     serve(
       put ==> {
         case (name, (payload, newTimestamp, ttl), rtn) =>
@@ -75,6 +73,6 @@ class Registry { // TODO refactor this into a trait & HashRegistry
       }
       | terminate ==> {_ => throw new ox.cso.Abort}
     )
-    put.close; get.close;
+    put.close; get.close; getAll.close; terminate.close;
   }
 }

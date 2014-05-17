@@ -29,7 +29,7 @@ import cscala.UDPDistributedNS._
  */
 class UDPDistributedNS(debugname:String="UDPDistributedNS") extends NameServer {
 
-  val registry = new Registry()
+  val registry = new Registry[(InetAddress, Port)]()
   val FILL_TIMEOUT = 1000
   val ANYONE_AWAKE_TIMEOUT = 1000
   
