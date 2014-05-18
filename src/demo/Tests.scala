@@ -67,7 +67,7 @@ object Tests {
     val index = sim.join()
     (ox.CSO.proc { ox.CSO.repeat { Console.println("[UDP] " + (sim.memberChans(index)?)) }}).fork
     
-    val ns1 = new MockedUDPDistributedNS(sim, "1")
+    val ns1 = new MockUDPDistributedNS(sim, "1")
     println("[Tests] ns1 initialised")
   }
   
@@ -90,20 +90,20 @@ object Tests {
     val index = sim.join()
     (ox.CSO.proc { ox.CSO.repeat { Console.println("[UDP] " + (sim.memberChans(index)?)) }}).fork
     
-    val ns1 = new MockedUDPDistributedNS(sim, "1")
+    val ns1 = new MockUDPDistributedNS(sim, "1")
     ns1.register("dummy", 8888, NameServer.DEFAULT_TTL) // TODO. why is ns1 saving this?
     
     Thread.sleep(3000)
     
-    val ns2 = new MockedUDPDistributedNS(sim, "2")
+    val ns2 = new MockUDPDistributedNS(sim, "2")
 
     println("13: " + wrap(ns2.lookupForeign("dummy")==Some((ns1.nameServerAddress, 8888))))
   }
   
   private def testSharing(){
     val sim = new MulticastSimulator()
-    val ns1 = new MockedUDPDistributedNS(sim, "1")
-    val ns2 = new MockedUDPDistributedNS(sim, "2")
+    val ns1 = new MockUDPDistributedNS(sim, "1")
+    val ns2 = new MockUDPDistributedNS(sim, "2")
     ns1.register("dummy", 8888, NameServer.DEFAULT_TTL)
     Thread.sleep(100)
     println("14: "+wrap(ns2.lookupForeign("dummy")==Some((ns1.nameServerAddress, 8888))))
