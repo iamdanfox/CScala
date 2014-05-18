@@ -1,12 +1,11 @@
 package cscala
 
 import java.net.InetAddress
-import ox.cso.NetIO.Server
-import ox.cso.NetIO._
-import ox.cso.OutPort
-import ox.cso.InPort
+
 import ox.cso.NetIO
-import NameServer._
+import ox.cso.Connection.Server
+import NameServer.Port
+import NameServer.TTL
 
 
 trait NameServer {
@@ -40,7 +39,7 @@ trait NameServer {
       case None => throw new NameServer.NameNotFoundException(name) // beware, scala treats all exceptions as RuntimeExceptions
     }
   
-  def lookupAndConnect[Req, Resp](name: String): Option[OutPort[Req] with InPort[Resp]] = {
+  def lookupAndConnect[Req, Resp](name: String): Option[Server[Req,Resp]] = {
     return lookupForeign(name) match {
       case Some((addr, port)) => Some(NetIO.clientConnection[Req, Resp](addr, port, false)) // synchronous = false
       case None => None
@@ -50,8 +49,8 @@ trait NameServer {
   /**
    * Connect to a service. Returns the address and port or throws a NameNotFoundException.
    */
-  def lookupAndConnect2[Req, Resp](name: String): OutPort[Req] with InPort[Resp] = // TODO better name
-    lookupAndConnect(name) match {
+  def lookupAndConnect2[Req, Resp](name: String): Server[Req,Resp] = // TODO better name
+    lookupAndConnect[Req,Resp](name) match {
       case Some(conn) => return conn
       case None => throw new NameServer.NameNotFoundException(name)
     }
