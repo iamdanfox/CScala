@@ -10,8 +10,10 @@ import cscala.NameServer._
 import cscala.Registry._
 
 
-
-class LocalNS extends NameServer {
+/**
+ * Wrapper for a registry of (InetAddress, Port) pairs.
+ */
+class NetworkNS extends NameServer {
   
   protected val registry = new Registry[(InetAddress, Port)]()
   

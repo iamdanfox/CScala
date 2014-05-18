@@ -16,7 +16,7 @@ import ox.cso.NetIO
  * TCP accessible nameserver. Forks a process for every client connection
  * 
  */
-class ServeLocalNS extends LocalNS {
+class ServeLocalNS extends NetworkNS {
   
   
   NetIO.serverPort(NameServer.NAMESERVER_PORT, 0, false, handleClient).fork
