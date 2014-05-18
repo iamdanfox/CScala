@@ -35,19 +35,19 @@ object Tests {
   }
   
   private def registerForeign() ={
-    println("3: "+ wrap(NS().registerForeign("Test", InetAddress.getLocalHost(), 100, NameServer.DEFAULT_TTL)) )
+    println("3: "+ wrap(NS().registerAddr("Test", InetAddress.getLocalHost(), 100, NameServer.DEFAULT_TTL)) )
 //    println("   "+ wrap(NS().register("Test2", 101)) )
   }
   
   private def lookupForeign() = {
-    println("4: "+ wrap(NS().lookupForeign("Test")==Some((InetAddress.getLocalHost(),100))) )
-    println("5: "+ wrap(NS().lookupForeign("NonExistent")==None))
+    println("4: "+ wrap(NS().lookupAddr("Test")==Some((InetAddress.getLocalHost(),100))) )
+    println("5: "+ wrap(NS().lookupAddr("NonExistent")==None))
   }
 
   private def testLookupAndConnect() ={
     EchoService.startEchoService(); // starts EchoService listening on port 3302
 //    NS().registerForeign("EchoService", InetAddress.getByName("localhost"), EchoService.port, NameServer.DEFAULT_TTL)
-    NS().registerForeign("EchoService", NS().nameServerAddress, EchoService.port)
+    NS().registerAddr("EchoService", NS().nameServerAddress, EchoService.port)
     
     // pretend to be a client
     NS().lookup("EchoService") match {
@@ -91,22 +91,22 @@ object Tests {
     (ox.CSO.proc { ox.CSO.repeat { Console.println("[UDP] " + (sim.memberChans(index)?)) }}).fork
     
     val ns1 = new MockUDPDistributedNS(sim, "1")
-    ns1.registerForeign("dummy", ns1.nameServerAddress, 8888, NameServer.DEFAULT_TTL) // TODO. why is ns1 saving this?
+    ns1.registerAddr("dummy", ns1.nameServerAddress, 8888, NameServer.DEFAULT_TTL) // TODO. why is ns1 saving this?
     
     Thread.sleep(3000)
     
     val ns2 = new MockUDPDistributedNS(sim, "2")
 
-    println("13: " + wrap(ns2.lookupForeign("dummy")==Some((ns1.nameServerAddress, 8888))))
+    println("13: " + wrap(ns2.lookupAddr("dummy")==Some((ns1.nameServerAddress, 8888))))
   }
   
   private def testSharing(){
     val sim = new MulticastSimulator()
     val ns1 = new MockUDPDistributedNS(sim, "1")
     val ns2 = new MockUDPDistributedNS(sim, "2")
-    ns1.registerForeign("dummy", ns1.nameServerAddress, 8888, NameServer.DEFAULT_TTL)
+    ns1.registerAddr("dummy", ns1.nameServerAddress, 8888, NameServer.DEFAULT_TTL)
     Thread.sleep(100)
-    println("14: "+wrap(ns2.lookupForeign("dummy")==Some((ns1.nameServerAddress, 8888))))
+    println("14: "+wrap(ns2.lookupAddr("dummy")==Some((ns1.nameServerAddress, 8888))))
   }
   
   

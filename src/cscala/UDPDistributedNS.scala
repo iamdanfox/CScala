@@ -152,7 +152,7 @@ class UDPDistributedNS(debugname:String="UDPDistributedNS") extends NameServer {
   /**
    * Looks up the name in the registry
    */
-  override def lookupForeign(name: String): Option[(InetAddress, Port)] = {
+  override def lookupAddr(name: String): Option[(InetAddress, Port)] = {
     val rtnCh = OneOne[Option[registry.Record]]
     registry.get ! ((name, rtnCh))
     return (rtnCh?) match {
@@ -162,7 +162,7 @@ class UDPDistributedNS(debugname:String="UDPDistributedNS") extends NameServer {
   }
   
   override def lookup[Req, Resp](name: String): Option[Server[Req,Resp]] = {
-    return lookupForeign(name) match {
+    return lookupAddr(name) match {
       case Some((addr, port)) => Some(NetIO.clientConnection[Req, Resp](addr, port, false)) // synchronous = false
       case None => None
     }
@@ -171,7 +171,7 @@ class UDPDistributedNS(debugname:String="UDPDistributedNS") extends NameServer {
   /**
    * Add a new mapping from String -> (InetAddress, Port)
    */
-  override def registerForeign(name: String, address: InetAddress, port: Port, ttl: TTL): Boolean = {
+  override def registerAddr(name: String, address: InetAddress, port: Port, ttl: TTL): Boolean = {
     // attempt insertion
     val rtnCh = OneOne[Boolean]
     val timestamp = System.currentTimeMillis()

@@ -23,7 +23,7 @@ class NetworkNS extends NameServer {
   /**
    * Add a new mapping from String -> (InetAddress, Port)
    */
-  override def registerForeign(name: String, address: InetAddress, port: Port, ttl: TTL): Boolean = {
+  override def registerAddr(name: String, address: InetAddress, port: Port, ttl: TTL): Boolean = {
     val rtnCh = OneOne[Boolean]
     val timestamp = System.currentTimeMillis()
     registry.put ! ((name, ((address, port), timestamp, ttl), rtnCh))
@@ -33,7 +33,7 @@ class NetworkNS extends NameServer {
   /**
    * Looks up the name in the registry
    */
-  override def lookupForeign(name: String): Option[(InetAddress, Port)] = {
+  override def lookupAddr(name: String): Option[(InetAddress, Port)] = {
     val rtnCh = OneOne[Option[registry.Record]]
     registry.get ! ((name, rtnCh))
     return (rtnCh?) match {
@@ -43,7 +43,7 @@ class NetworkNS extends NameServer {
   }
   
   override def lookup[Req, Resp](name: String): Option[Server[Req,Resp]] = {
-    return lookupForeign(name) match {
+    return lookupAddr(name) match {
       case Some((addr, port)) => Some(NetIO.clientConnection[Req, Resp](addr, port, false)) // synchronous = false
       case None => None
     }
@@ -55,14 +55,14 @@ class NetworkNS extends NameServer {
   def registerAndBind[Req, Rep](name: String, port: Port, ttl: TTL = NameServer.DEFAULT_TTL, handleClient: Client[Req, Rep] => Unit): Boolean = synchronized {
     // `synchronized` keyword makes it atomic
     // first, check if the name is in use.
-    lookupForeign(name) match {
+    lookupAddr(name) match {
       case Some(_) => return false // name already in use 
       case None =>
         try {
           // bind handler to a port
           ox.cso.NetIO.serverPort(port, 0, false, handleClient).fork
           // insert Record into Registry
-          registerForeign(name, nameServerAddress, port, ttl)
+          registerAddr(name, nameServerAddress, port, ttl)
           return true
         } catch {
           case e: java.net.BindException => return false // Port already in use

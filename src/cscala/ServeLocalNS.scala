@@ -55,7 +55,7 @@ class ServeLocalNS extends NetworkNS {
   /**
    * Add a new mapping from String -> (InetAddress, Port)
    */
-  override def registerForeign(name: String, address: InetAddress, port: Port, ttl: TTL): Boolean = {
+  override def registerAddr(name: String, address: InetAddress, port: Port, ttl: TTL): Boolean = {
     // attempt insertion
     val rtnCh = OneOne[Boolean]
     val timestamp = System.currentTimeMillis()

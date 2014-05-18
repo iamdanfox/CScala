@@ -22,13 +22,13 @@ trait NameServer {
    * For registering an arbritary service that is network accessible. Use NameServer.DEFAULT_TTL if necessary.
    * Returns true if the Record has been successfully saved, false otherwise
    */
-  def registerForeign(name: String, address: InetAddress, port: Port, ttl: TTL = NameServer.DEFAULT_TTL): Boolean
+  def registerAddr(name: String, address: InetAddress, port: Port, ttl: TTL = NameServer.DEFAULT_TTL): Boolean
 
   /**
    * Lookup a network accessible service.  Returns the address and port.  Calling code is responsible 
    * for making the connection & handling errors if necessary.
    */
-  def lookupForeign(name: String): Option[(InetAddress, NameServer.Port)]
+  def lookupAddr(name: String): Option[(InetAddress, NameServer.Port)]
 
   /**
    * Lookup a service. Returns the address and port or throws a NameNotFoundException.

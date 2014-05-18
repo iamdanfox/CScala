@@ -28,8 +28,8 @@ object Tests2 {
   
   private def lookupForeign() = {
     // already registered in 'Tests.scala'
-    println("3: "+ wrap(NS().lookupForeign("Test")==Some((InetAddress.getLocalHost(),100))) )
-    println("4: "+ wrap(NS().lookupForeign("NonExistent")==None) )
+    println("3: "+ wrap(NS().lookupAddr("Test")==Some((InetAddress.getLocalHost(),100))) )
+    println("4: "+ wrap(NS().lookupAddr("NonExistent")==None) )
   }
 
 }
