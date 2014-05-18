@@ -13,6 +13,7 @@ import ox.cso.Datagram.PortToSocket
 import ox.cso.Datagram.SocketToPort
 import ox.cso.NetIO
 import ox.cso.Abort
+import ox.cso.Connection.Server
 import cscala.UDPDistributedNS._
 
 /**
@@ -156,6 +157,13 @@ class UDPDistributedNS(debugname:String="UDPDistributedNS") extends NameServer {
     registry.get ! ((name, rtnCh))
     return (rtnCh?) match {
       case Some((payload, timestamp, ttl)) => Some(payload) // slightly less data returned
+      case None => None
+    }
+  }
+  
+  override def lookup[Req, Resp](name: String): Option[Server[Req,Resp]] = {
+    return lookupForeign(name) match {
+      case Some((addr, port)) => Some(NetIO.clientConnection[Req, Resp](addr, port, false)) // synchronous = false
       case None => None
     }
   }

@@ -1,6 +1,8 @@
 package cscala
 
 import java.net.InetAddress
+import ox.cso.Connection.Server
+import ox.cso.NetIO
 
 /**
  * Wrapper class that provides a unified interface to a non-local NameServer
@@ -26,6 +28,13 @@ class ForeignNSWrapper(conn: ox.cso.NetIO.Server[InterNSMsg, InterNSMsg]) extend
     resp match {
       case Success(n, a, p) => return Some(a, p)
       case Failure(n) => return None
+    }
+  }
+  
+  override def lookup[Req, Resp](name: String): Option[Server[Req,Resp]] = {
+    return lookupForeign(name) match {
+      case Some((addr, port)) => Some(NetIO.clientConnection[Req, Resp](addr, port, false)) // synchronous = false
+      case None => None
     }
   }
 }

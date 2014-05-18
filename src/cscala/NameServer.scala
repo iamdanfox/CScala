@@ -39,18 +39,13 @@ trait NameServer {
       case None => throw new NameServer.NameNotFoundException(name) // beware, scala treats all exceptions as RuntimeExceptions
     }
   
-  def lookupAndConnect[Req, Resp](name: String): Option[Server[Req,Resp]] = {
-    return lookupForeign(name) match {
-      case Some((addr, port)) => Some(NetIO.clientConnection[Req, Resp](addr, port, false)) // synchronous = false
-      case None => None
-    }
-  }
+  def lookup[Req, Resp](name: String): Option[Server[Req,Resp]]
 
   /**
    * Connect to a service. Returns the address and port or throws a NameNotFoundException.
    */
   def lookupAndConnect2[Req, Resp](name: String): Server[Req,Resp] = // TODO better name
-    lookupAndConnect[Req,Resp](name) match {
+    lookup[Req,Resp](name) match {
       case Some(conn) => return conn
       case None => throw new NameServer.NameNotFoundException(name)
     }

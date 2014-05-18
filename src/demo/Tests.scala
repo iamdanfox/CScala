@@ -50,7 +50,7 @@ object Tests {
     NS().register("EchoService", EchoService.port)
     
     // pretend to be a client
-    NS().lookupAndConnect("EchoService") match {
+    NS().lookup("EchoService") match {
       case Some(server:ox.cso.InPort[String] with ox.cso.OutPort[String]) => {
         server ! "Hello"
         val response:String = (server?)

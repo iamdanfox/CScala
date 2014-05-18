@@ -8,6 +8,7 @@ import ox.CSO.proc
 import ox.cso.NetIO._
 import ox.CSO._
 import ox.cso._
+import ox.cso.Connection.Server
 import cscala.NameServer._
 import cscala.Registry._
 
@@ -41,6 +42,12 @@ class NetworkNS extends NameServer {
     }
   }
   
+  override def lookup[Req, Resp](name: String): Option[Server[Req,Resp]] = {
+    return lookupForeign(name) match {
+      case Some((addr, port)) => Some(NetIO.clientConnection[Req, Resp](addr, port, false)) // synchronous = false
+      case None => None
+    }
+  }
   
   /**
    * Register a service and bind it to a socket.
