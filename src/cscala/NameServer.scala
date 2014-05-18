@@ -26,29 +26,6 @@ trait NameServer {
   def registerForeign(name: String, address: InetAddress, port: Port, ttl: TTL = NameServer.DEFAULT_TTL): Boolean
 
   /**
-   * Register a service and bind it to a socket.
-   */
-  def registerAndBind[Req, Rep](name: String, port: Port, ttl: TTL = NameServer.DEFAULT_TTL, handleClient: Client[Req, Rep] => Unit): Boolean = synchronized {
-    // `synchronized` keyword makes it atomic
-    // first, check if the name is in use.
-    lookupForeign(name) match {
-      case Some(_) => return false // name already in use 
-      case None =>
-        try {
-          // bind handler to a port
-          NetIO.serverPort(port, 0, false, handleClient).fork
-          // insert Record into Registry
-          registerForeign(name, nameServerAddress, port, ttl)
-          return true
-        } catch {
-          case e: java.net.BindException => return false // Port already in use
-          case _ => return false
-        }
-    }
-  }
-    
-
-  /**
    * Lookup a network accessible service.  Returns the address and port.  Calling code is responsible 
    * for making the connection & handling errors if necessary.
    */
