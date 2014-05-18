@@ -15,8 +15,8 @@ trait NameServer {
    */
   def nameServerAddress : InetAddress = InetAddress.getByName(InetAddress.getLocalHost().getHostAddress()) // TODO: final?
   
-  def register(name:String, port:Port, ttl:TTL = NameServer.DEFAULT_TTL) : Boolean = 
-    return registerForeign(name, this.nameServerAddress, port, ttl)
+//  def register(name:String, port:Port, ttl:TTL = NameServer.DEFAULT_TTL) : Boolean = 
+//    return registerForeign(name, this.nameServerAddress, port, ttl)
   
   /**
    * For registering an arbritary service that is network accessible. Use NameServer.DEFAULT_TTL if necessary.
