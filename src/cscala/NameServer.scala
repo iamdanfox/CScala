@@ -33,24 +33,22 @@ trait NameServer {
   /**
    * Lookup a service. Returns the address and port or throws a NameNotFoundException.
    */
-  def lookupForeign2(name: String): (InetAddress, NameServer.Port) = // TODO better name
-    lookupForeign(name) match {
-      case Some(v) => return v
-      case None => throw new NameServer.NameNotFoundException(name) // beware, scala treats all exceptions as RuntimeExceptions
-    }
+//  def lookupForeign2(name: String): (InetAddress, NameServer.Port) = // TODO better name
+//    lookupForeign(name) match {
+//      case Some(v) => return v
+//      case None => throw new NameServer.NameNotFoundException(name) // beware, scala treats all exceptions as RuntimeExceptions
+//    }
   
   def lookup[Req, Resp](name: String): Option[Server[Req,Resp]]
 
   /**
    * Connect to a service. Returns the address and port or throws a NameNotFoundException.
    */
-  def lookupAndConnect2[Req, Resp](name: String): Server[Req,Resp] = // TODO better name
-    lookup[Req,Resp](name) match {
-      case Some(conn) => return conn
-      case None => throw new NameServer.NameNotFoundException(name)
-    }
-
-  // TODO deregister?
+//  def lookup2[Req, Resp](name: String): Server[Req,Resp] = // TODO better name
+//    lookup[Req,Resp](name) match {
+//      case Some(conn) => return conn
+//      case None => throw new NameServer.NameNotFoundException(name)
+//    }
 }
 
 object NameServer {
