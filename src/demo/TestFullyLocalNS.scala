@@ -17,6 +17,9 @@ object TestLocal {
       lc!"Hello"
       val ret = lc?;
       println("1: "+wrap(ret==5))
+      
+      ns.terminate()
+      println("done")
   }
   def wrap(b:Boolean) : String =  if (b) "pass" else "fail"
 }

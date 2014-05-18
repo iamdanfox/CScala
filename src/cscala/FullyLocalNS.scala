@@ -3,7 +3,7 @@ package cscala
 import ox.CSO._
 import ox.cso.Connection._
 
-class FullyLocalNS {
+class FullyLocalNS { // TODO make this share a trait with the other NameServers.
   
 //  private val registry = new collection.mutable.HashMap[String,(Client[Any,Any] => Unit, Registry.Timestamp, NameServer.TTL)]()
   private val registry = new Registry[Client[Any,Any] => Unit]()
@@ -32,8 +32,8 @@ class FullyLocalNS {
     val ret = new OneOne[Option[registry.Record]]
     registry.get!((name, ret))
     ret? match {
-      case Some(handlefn) => {
-        val handleFunction = handlefn._1.asInstanceOf[Client[Req,Resp] => Unit]
+      case Some(recordTuple) => {
+        val handleFunction = recordTuple._1.asInstanceOf[Client[Req,Resp] => Unit]
         // 'connect' to the server
         val conn = ox.cso.Connection.OneOne[Req,Resp]
         proc { handleFunction(conn.client) }.fork 
@@ -43,4 +43,10 @@ class FullyLocalNS {
     }
   }
   
+  /**
+   * (So far, this only seems useful for writing tests)
+   */
+  def terminate() = {
+    registry.terminate!()
+  }
 }
