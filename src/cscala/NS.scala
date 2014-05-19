@@ -27,7 +27,7 @@ object NS {
       case None =>
         //println("NS() starting a new local NameServer")
         // start a new one, serving properly
-        impl = new ServeLocalNS()
+        impl = new TCPServedNS()
         return impl
     }
   }

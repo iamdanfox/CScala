@@ -13,10 +13,10 @@ import ox.cso.NetIO
 
 
 /**
- * TCP accessible nameserver. Forks a process for every client connection
+ * TCP accessible nameserver. Forks a process for every client connection. Communicates using InterNSMsgs
  * 
  */
-class ServeLocalNS extends NetworkNS {
+class TCPServedNS extends NetworkNS {
   
   
   NetIO.serverPort(NameServer.NAMESERVER_PORT, 0, false, handleClient).fork
