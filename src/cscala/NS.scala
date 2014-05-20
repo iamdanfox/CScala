@@ -1,43 +1,53 @@
 package cscala
-
-import ox.cso.NetIO
+import java.net.InetAddress
+import ox.cso.Connection._
 
 /**
- * Returns a nameserver.
- *
- * Returns the locally running one if possible, otherwise, will find one running on this JVM.
- *
- * Starts a new local NameServer if no other options.
+ * Guard object ensures that exactly one NameServer for network accessible resources is ever created
  */
-object NS {
+object NS extends Lookupable {
 
-  private var impl: NameServer = null
+  private val ns = new UDPDistributedNS()
+  
+  val nameServerAddress = InetAddress.getLocalHost()
 
-  def localRunning(): Boolean = this.impl != null
+  def lookup[Req, Resp](name: String): Option[Server[Req, Resp]] = ns.lookup[Req, Resp](name)
 
-  def apply(): NameServer = { // TODO is this threadsafe?
-    if (localRunning()) {
-      // local nameserver is already running
-      //println("NS() Already running locally")
-      return impl
-    } else findForeignNS() match {
-      case Some(foreignNS) =>
-        // wrap the foreign server object with `register`, `lookup` methods 
-        return new ForeignNSWrapper(foreignNS) // new connection is made for every single request. TODO: improve
-      case None =>
-        //println("NS() starting a new local NameServer")
-        // start a new one, serving properly
-        impl = new TCPServedNS()
-        return impl
-    }
+  def register(name: String, v: (InetAddress, Int), ttl: Long): Boolean = {
+    ns.registerAddr(name, v._1, v._2, ttl)
+  }
+}
+
+/**
+ * Guard object ensures that exactly one NameServer for *locally* accessible resources is ever created
+ */
+object LocalNS extends Lookupable {
+
+  private val ns = new FullyLocalNS()
+
+  def lookup[Req, Resp](name: String): Option[Server[Req, Resp]] = ns.lookup2[Req, Resp](name)
+
+  def register[Req, Resp](name: String, handleClient: Client[Req, Resp] => Unit, ttl: Long): Boolean = {
+    ns.register[Req, Resp](name, ttl, handleClient)
+  }
+}
+
+object DualNS extends Lookupable {
+
+  /**
+   * Does local lookup first, then attempts a foreign one.
+   */
+  def lookup[Req, Resp](name: String): Option[Server[Req, Resp]] = LocalNS.lookup[Req, Resp](name) match {
+    case Some(s) => Some(s)
+    case None => NS.lookup[Req, Resp](name)
   }
 
-  private def findForeignNS(): Option[ox.cso.NetIO.Server[InterNSMsg, InterNSMsg]] = {
-    try {
-      return Some(NetIO.clientConnection[InterNSMsg, InterNSMsg]("localhost", NameServer.NAMESERVER_PORT, false))
-    } catch {
-      // couldn't connect to localhost:7700, 
-      case ce: java.net.ConnectException => return None
-    }
+  def register[Req, Resp](name: String, handleClient: Client[Req, Resp] => Unit, ttl: Long): Boolean = {
+    LocalNS.register[Req,Resp](name, handleClient, ttl)
   }
+  
+  def register(name:String, v: (InetAddress, Int), ttl: Long) : Boolean = {
+    NS.register(name, v, ttl)
+  }
+
 }
