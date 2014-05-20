@@ -16,11 +16,6 @@ object Tests {
     lookupForeign()
     testLookupAndConnect();
     
-//    printlnsSingleUDPDistributedNS() 
-//      testMulticastSimulator()
-//    testUDPDistributedNS()
-//    testSharing()
-    
     println("---")
     println("done. Now run Tests2.scala")
   }
@@ -59,18 +54,7 @@ object Tests {
       case None => println("6: failed badly")
     }
   }
-  
-  
-  
-  private def testSharing(){
-    val sim = new MulticastSimulator()
-    val ns1 = new MockUDPDistributedNS(sim, "1")
-    val ns2 = new MockUDPDistributedNS(sim, "2")
-    ns1.registerAddr("dummy", ns1.nameServerAddress, 8888, NameServer.DEFAULT_TTL)
-    Thread.sleep(100)
-    println("14: "+wrap(ns2.lookupAddr("dummy")==Some((ns1.nameServerAddress, 8888))))
-  }
-  
+ 
   
   def wrap(b:Boolean) : String =  if (b) "pass" else "fail"
 }

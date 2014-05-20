@@ -44,11 +44,11 @@ trait NameServer {
   /**
    * Connect to a service. Returns the address and port or throws a NameNotFoundException.
    */
-//  def lookup2[Req, Resp](name: String): Server[Req,Resp] = // TODO better name
-//    lookup[Req,Resp](name) match {
-//      case Some(conn) => return conn
-//      case None => throw new NameServer.NameNotFoundException(name)
-//    }
+  def lookupConf[Req, Resp](name: String): Server[Req,Resp] = // TODO better name
+    lookup[Req,Resp](name) match {
+      case Some(conn) => return conn
+      case None => throw new NameServer.NameNotFoundException(name)
+    }
 }
 
 object NameServer {
@@ -57,6 +57,7 @@ object NameServer {
   
   val NAMESERVER_PORT:Port = 7700
   val DEFAULT_TTL:TTL = 1000*60*10 // 10 minutes
+  val TEN_MIN_TTL:TTL = 1000*60*10 // 10 minutes
   
   class NameNotFoundException(name: String) extends Exception {} 
 }
