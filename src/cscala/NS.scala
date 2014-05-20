@@ -3,11 +3,11 @@ import java.net.InetAddress
 import ox.cso.Connection._
 
 /**
- * Guard object ensures that exactly one NameServer for network accessible resources is ever created
+ * Guard object ensures that exactly one UDPDistributedNS for network accessible resources is ever created
  */
 object NS extends Connectable {
 
-  private val ns = new UDPDistributedNS()
+  protected val ns = new UDPDistributedNS()
 
   val nameServerAddress = InetAddress.getLocalHost()
 
@@ -19,20 +19,26 @@ object NS extends Connectable {
 
   def register(name: String, v: (InetAddress, Int), ttl: Long): Boolean =
     ns.registerAddr(name, v._1, v._2, ttl)
+    
+  def remove(name: String) =
+    ns.registerAddr(name, null.asInstanceOf[InetAddress], null.asInstanceOf[Int], 0)
 }
 
 /**
- * Guard object ensures that exactly one NameServer for *locally* accessible resources is ever created
+ * Guard object ensures that exactly one FullyLocalNS for *locally* accessible resources is ever created
  */
 object LocalNS extends Connectable {
 
-  private val ns = new FullyLocalNS()
+  protected val ns = new FullyLocalNS()
 
   def connect[Req, Resp](name: String): Option[Server[Req, Resp]] =
     ns.lookup2[Req, Resp](name)
 
   def register[Req, Resp](name: String, handleClient: Client[Req, Resp] => Unit, ttl: Long): Boolean =
     ns.register[Req, Resp](name, ttl, handleClient)
+    
+  def remove(name: String) =
+    ns.register(name, 0, null.asInstanceOf[Client[Nothing,Nothing] => Unit])
 }
 
 object DualNS extends Connectable {
