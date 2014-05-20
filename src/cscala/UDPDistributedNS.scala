@@ -71,11 +71,10 @@ class UDPDistributedNS(debugname:String="UDPDistributedNS") extends NameServer {
   debug(debugname + ": Constructor start")
   // constructor will only start accepting when both of these are finished
 
-  sendMulticast ! AnyoneAwake;
+  sendMulticast ! AnyoneAwake; // TODO: sendMulticast not happy with real UDP 
   debug(debugname + ": Sent anyoneawake, listening")
 
   // essential to use serve because recvMulticast might receive non-OfferFill messages
-  // TODO: something broken here!!
   serve(
     recvMulticast ==> {
       case OfferFill(from) => {
