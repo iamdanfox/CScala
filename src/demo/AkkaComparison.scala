@@ -17,10 +17,10 @@ object AkkaComparison {
   
   NetIO.serverPort(2552, 0, false, handleClient).fork
 
-  NS().registerAddr("greeter", NS().nameServerAddress, 2552, TEN_MIN_TTL)
+  NS.register("greeter", (NS.nameServerAddress, 2552), TEN_MIN_TTL)
 
   // on second machine
-  val greeter = NS().lookup[Greeting, String]("greeter") match {
+  val greeter = NS.connect[Greeting, String]("greeter") match {
     case Some(g) => g !? Greeting("Sonny Rollins")
     case None => /* error handling */
   }
