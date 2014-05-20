@@ -44,7 +44,7 @@ trait NameServer {
   /**
    * Connect to a service. Returns the address and port or throws a NameNotFoundException.
    */
-  def lookupConf[Req, Resp](name: String): Server[Req,Resp] = // TODO better name
+  def connect[Req, Resp](name: String): Server[Req,Resp] = 
     lookup[Req,Resp](name) match {
       case Some(conn) => return conn
       case None => throw new NameServer.NameNotFoundException(name)
