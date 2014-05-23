@@ -69,7 +69,6 @@ class UDPDistributedNS(debugname:String="UDPDistributedNS") extends NameServer {
    * Distributed protocol implemented below here.
    */  
   debug(debugname + ": Constructor start")
-  // constructor will only start accepting when both of these are finished
 
   sendMulticast ! AnyoneAwake; // TODO: sendMulticast not happy with real UDP 
   debug(debugname + ": Sent anyoneawake, listening")

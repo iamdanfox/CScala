@@ -11,8 +11,10 @@ object CloseTest {
 
     val server = NetIO.clientConnection[String, String](InetAddress.getLocalHost(), 7843, false)
     server ! "Hello, world!"
+    
     println("Response: " + (server?))
-    server ! "Message 2" // java.net.SocketException: Broken pipe
+    server.close
+//    server ! "Message 2" // java.net.SocketException: Broken pipe
 
   }
 

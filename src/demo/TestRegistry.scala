@@ -16,7 +16,7 @@ object TestRegistry {
     r.put!("dummy", (999, System.currentTimeMillis(), 400), ret)
     (ret?)
     val ret1 = OneOne[Option[r.Record]]
-    r.get!(("dummy",ret1))
+    r.get ! ("dummy",ret1)
     ret1? match {
       case Some(record) => println(wrap(record._1 == 999))
       case None => println("fail")
