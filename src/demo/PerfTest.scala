@@ -86,7 +86,7 @@ object PerfTest {
 
       val t0 = System.currentTimeMillis
       for (i <- 0 until 100) {
-        val lc = ns.lookup[String, Int]("lengthcalc")
+        val lc = ns.connect[String, Int]("lengthcalc")
       }
       val t1 = System.currentTimeMillis
 

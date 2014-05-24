@@ -32,7 +32,7 @@ object LocalNS extends Connectable {
   protected val ns = new FullyLocalNS()
 
   def connect[Req, Resp](name: String): Option[Server[Req, Resp]] =
-    ns.lookup2[Req, Resp](name)
+    ns.connect[Req, Resp](name)
 
   def register[Req, Resp](name: String, handleClient: Client[Req, Resp] => Unit, ttl: Long): Boolean =
     ns.register[Req, Resp](name, ttl, handleClient)

@@ -3,7 +3,7 @@ package cscala
 import ox.CSO._
 import ox.cso.Connection._
 
-class FullyLocalNS { // TODO make this share a trait with the other NameServers.
+class FullyLocalNS extends Connectable {
   
 //  private val registry = new collection.mutable.HashMap[String,(Client[Any,Any] => Unit, Registry.Timestamp, NameServer.TTL)]()
   private val registry = new Registry[Client[Any,Any] => Unit]()
@@ -18,8 +18,8 @@ class FullyLocalNS { // TODO make this share a trait with the other NameServers.
   /**
    * Lookup a name in the nameserver and 'connect' to the service. Throw an exception otherwise.
    */
-  def lookup[Req,Resp](name: String) : Server[Req,Resp] = synchronized {
-    lookup2[Req,Resp](name) match {
+  def connect2[Req, Resp](name: String) : Server[Req,Resp] = synchronized {
+    connect[Req,Resp](name) match {
       case Some(server) => return server
       case None => throw new NameServer.NameNotFoundException(name)
     }
@@ -28,7 +28,7 @@ class FullyLocalNS { // TODO make this share a trait with the other NameServers.
   /**
    * Tentative lookup and connect
    */
-  def lookup2[Req,Resp](name: String) : Option[Server[Req,Resp]] = synchronized {
+  def connect[Req, Resp](name: String) : Option[Server[Req,Resp]] = synchronized {
     val ret = new OneOne[Option[registry.Record]]
     registry.get!((name, ret))
     ret? match {

@@ -13,7 +13,7 @@ object TestLocal {
         client!(str.length)
       }))
       
-      val lc = ns.lookup[String,Int]("lengthcalc")
+      val lc = ns.connect2[String,Int]("lengthcalc")
       lc!"Hello"
       val ret = lc?;
       println("1: "+wrap(ret==5))

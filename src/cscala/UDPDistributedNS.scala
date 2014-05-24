@@ -109,7 +109,6 @@ class UDPDistributedNS(debugname:String="UDPDistributedNS") extends NameServer {
           debug(debugname + ": Incoming REGISTER ('"+name+"'), saved="+wasUpdated)
         }
         case Fill(contents) => {
-          // TODO should we only accept unsolicited fills?
           print(debugname + ": Incoming FILL: ")
           contents.foreach(r => {
               val rtnCh = OneOne[Boolean]
